@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Account Management</title>
+  <link rel="stylesheet" href="../CSS/account.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="logo"></div>
+        <div>
+          <div class="brand-title">Hawker App</div>
+          <div class="brand-sub">Account</div>
+        </div>
+      </div>
+
+      <nav class="nav">
+        <button class="nav-btn" data-go="view-role">Role</button>
+        <button class="nav-btn" data-go="view-auth">Sign In / Register</button>
+        <button class="nav-btn" data-go="view-recovery">Recovery</button>
+      </nav>
+
+      <div class="sideinfo">
+        <div class="pill" id="rolePill">Role: -</div>
+        <div class="pill" id="userPill">User: Guest</div>
+        <button class="secondary" id="btnLogout">Logout</button>
+      </div>
+    </aside>
+
+    <main class="content">
+      <header class="topbar">
+        <div class="crumb" id="crumb">Role</div>
+        <div class="top-actions">
+          <button class="secondary" id="btnResetDB" title="Dev only">Reset DB</button>
+        </div>
+      </header>
+
+      <section class="panel">
+        <div class="notice" id="notice" aria-live="polite"></div>
+
+        <!-- VIEW: ROLE -->
+        <div class="view" id="view-role">
+          <h1>Choose account type</h1>
+          <p class="muted">Pick what you’re using the system as.</p>
+
+          <div class="card-grid">
+            <button class="card" data-role="CUSTOMER">
+              <div class="card-icon"></div>
+              <div class="card-title">Customer</div>
+              <div class="card-sub">Order food easily</div>
+            </button>
+
+            <button class="card" data-role="VENDOR">
+              <div class="card-icon"></div>
+              <div class="card-title">Vendor</div>
+              <div class="card-sub">Manage stall listing</div>
+            </button>
+
+            <button class="card" data-role="NEA">
+              <div class="card-icon"></div>
+              <div class="card-title">NEA Officer</div>
+              <div class="card-sub">Regulatory functions</div>
+            </button>
+          </div>
+
+          <div class="row">
+            <button class="primary" id="btnContinueFromRole">Continue</button>
+          </div>
+        </div>
+
+        <!-- VIEW: AUTH HOME (buttons) -->
+        <div class="view" id="view-auth">
+          <h1 id="authTitle">Sign In / Register</h1>
+          <p class="muted" id="authSubtitle">Continue as a customer or vendor.</p>
+
+          <div class="row gap">
+            <button class="primary" id="btnGoSignin">Sign In</button>
+            <button class="secondary" id="btnGoRegister">Register</button>
+            <button class="ghost" id="btnGuest">Continue as guest</button>
+          </div>
+        </div>
+
+        <!-- VIEW: SIGN IN -->
+        <div class="view" id="view-signin">
+          <h1>Sign In</h1>
+          <form id="signinForm" class="form">
+            <label>
+              Email / Username
+              <input type="text" id="siUsername" autocomplete="username" required />
+            </label>
+
+            <label>
+              Password
+              <input type="password" id="siPassword" autocomplete="current-password" required />
+            </label>
+
+            <div class="row between">
+              <button type="button" class="link" id="btnForgot">Forgot password?</button>
+              <button class="primary" type="submit">Sign In</button>
+            </div>
+
+            <div class="row">
+              <span class="muted">Don’t have an account?</span>
+              <button type="button" class="link" id="btnToRegister">Register</button>
+            </div>
+          </form>
+        </div>
+
+        <!-- VIEW: REGISTER -->
+        <div class="view" id="view-register">
+          <h1>Register</h1>
+          <form id="registerForm" class="form">
+            <label>
+              Full name
+              <input type="text" id="rgName" required />
+            </label>
+
+            <label>
+              Email (recommended)
+              <input type="email" id="rgEmail" placeholder="name@example.com" />
+            </label>
+
+            <label>
+              Mobile number
+              <input type="tel" id="rgPhone" placeholder="8xxxxxxx" required />
+            </label>
+
+            <label>
+              Password
+              <input type="password" id="rgPassword" minlength="6" required />
+            </label>
+
+            <div class="row between">
+              <button type="button" class="secondary" id="btnBackAuth1">Back</button>
+              <button class="primary" type="submit">Register</button>
+            </div>
+
+            <div class="row">
+              <span class="muted">Already have an account?</span>
+              <button type="button" class="link" id="btnToSignin">Sign In</button>
+            </div>
+          </form>
+        </div>
+
+        <!-- VIEW: RECOVERY (request OTP) -->
+        <div class="view" id="view-recovery">
+          <h1>Recovery</h1>
+          <p class="muted">Use email or phone to request OTP.</p>
+
+          <div class="tabs">
+            <button class="tab active" data-mode="email">Email</button>
+            <button class="tab" data-mode="phone">Phone</button>
+          </div>
+
+          <form id="recoveryForm" class="form">
+            <label id="recoveryLabel">
+              Email
+              <input type="text" id="rcValue" required />
+            </label>
+
+            <div class="row between">
+              <button type="button" class="secondary" id="btnBackAuth2">Back</button>
+              <button class="primary" type="submit">Send OTP</button>
+            </div>
+          </form>
+        </div>
+
+        <!-- VIEW: OTP -->
+        <div class="view" id="view-otp">
+          <h1>Enter OTP</h1>
+          <p class="muted">Check your messages (simulated). OTP expires after a short time.</p>
+
+          <form id="otpForm" class="form">
+            <label>
+              OTP
+              <input type="text" id="otpValue" inputmode="numeric" maxlength="6" required />
+            </label>
+
+            <div class="row between">
+              <button type="button" class="secondary" id="btnBackRecovery">Back</button>
+              <button class="primary" type="submit">Verify</button>
+            </div>
+          </form>
+        </div>
+
+        <!-- VIEW: RESET PASSWORD -->
+        <div class="view" id="view-reset">
+          <h1>Reset password</h1>
+          <form id="resetForm" class="form">
+            <label>
+              New password
+              <input type="password" id="rsPassword" minlength="6" required />
+            </label>
+
+            <label>
+              Confirm password
+              <input type="password" id="rsConfirm" minlength="6" required />
+            </label>
+
+            <div class="row between">
+              <button type="button" class="secondary" id="btnBackOtp">Back</button>
+              <button class="primary" type="submit">Enter</button>
+            </div>
+          </form>
+        </div>
+
+      </section>
+    </main>
+  </div>
+
+  <!-- IMPORTANT: load db.js first -->
+  <script src="../../db.js"></script>
+  <script src="../JS/account.js"></script>
+</body>
+</html>

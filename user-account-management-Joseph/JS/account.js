@@ -4,6 +4,25 @@
    - db.users (seeded)
    - db.passwordResets (empty)
 */
+function setAuthOptionsForRole(role) {
+  // default: customer has all options
+  const showRegister = role === "CUSTOMER";
+  const showGuest = role === "CUSTOMER";
+
+  $("btnGoRegister").style.display = showRegister ? "inline-block" : "none";
+  $("btnGuest").style.display = showGuest ? "inline-block" : "none";
+
+  // NEA should not use password recovery (optional, but usually true)
+  $("btnForgot").style.display = (role === "CUSTOMER") ? "inline-block" : "none";
+
+  // Show Officer ID only when NEA
+  $("neaIdWrap").style.display = (role === "NEA") ? "block" : "none";
+
+  // Update subtitle text
+  if (role === "CUSTOMER") $("authSubtitle").textContent = "Customer: Sign in, register, or continue as guest.";
+  if (role === "VENDOR") $("authSubtitle").textContent = "Vendor: Sign in (accounts are pre-created).";
+  if (role === "NEA") $("authSubtitle").textContent = "NEA Officer: Sign in with Officer ID, username and password.";
+}
 
 (function () {
   // ---------------------------

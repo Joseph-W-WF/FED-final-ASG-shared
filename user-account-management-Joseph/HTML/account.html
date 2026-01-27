@@ -41,47 +41,48 @@
       <section class="panel">
         <div class="notice" id="notice" aria-live="polite"></div>
 
-        <!-- VIEW: ROLE -->
-        <div class="view" id="view-role">
-          <h1>Choose account type</h1>
-          <p class="muted">Pick what you’re using the system as.</p>
+              <!-- VIEW: SIGN IN -->
+      <div class="view" id="view-signin">
+        <h1>Sign In</h1>
 
-          <div class="card-grid">
-            <button class="card" data-role="CUSTOMER">
-              <div class="card-icon"></div>
-              <div class="card-title">Customer</div>
-              <div class="card-sub">Order food easily</div>
-            </button>
-
-            <button class="card" data-role="VENDOR">
-              <div class="card-icon"></div>
-              <div class="card-title">Vendor</div>
-              <div class="card-sub">Manage stall listing</div>
-            </button>
-
-            <button class="card" data-role="NEA">
-              <div class="card-icon"></div>
-              <div class="card-title">NEA Officer</div>
-              <div class="card-sub">Regulatory functions</div>
-            </button>
-          </div>
-
-          <div class="row">
-            <button class="primary" id="btnContinueFromRole">Continue</button>
-          </div>
+        <!-- Only show for NEA -->
+        <div id="neaIdWrap" style="display:none;">
+          <label>
+            Officer ID
+            <input type="text" id="siOfficerId" autocomplete="off" />
+          </label>
         </div>
 
-        <!-- VIEW: AUTH HOME (buttons) -->
-        <div class="view" id="view-auth">
-          <h1 id="authTitle">Sign In / Register</h1>
-          <p class="muted" id="authSubtitle">Continue as a customer or vendor.</p>
+        <form id="signinForm" class="form">
+          <label>
+            Username / Email / Phone
+            <input type="text" id="siUsername" autocomplete="username" required />
+          </label>
 
-          <div class="row gap">
-            <button class="primary" id="btnGoSignin">Sign In</button>
-            <button class="secondary" id="btnGoRegister">Register</button>
-            <button class="ghost" id="btnGuest">Continue as guest</button>
+          <label>
+            Password
+            <input type="password" id="siPassword" autocomplete="current-password" required />
+          </label>
+
+          <div class="row between">
+            <button type="button" class="link" id="btnForgot">Forgot password?</button>
+            <button class="primary" type="submit">Sign In</button>
           </div>
+        </form>
+      </div>
+
+
+              <!-- VIEW: AUTH HOME -->
+      <div class="view" id="view-auth">
+        <h1 id="authTitle">Sign In</h1>
+        <p class="muted" id="authSubtitle">Continue.</p>
+
+        <div class="row gap">
+          <button class="primary" id="btnGoSignin">Sign In</button>
+          <button class="secondary" id="btnGoRegister">Register</button>
+          <button class="ghost" id="btnGuest">Continue as guest</button>
         </div>
+      </div>
 
         <!-- VIEW: SIGN IN -->
         <div class="view" id="view-signin">

@@ -75,7 +75,7 @@ function createSeedDB() {
     ],
 
     // =====================================
-    // HAWKER CENTRE / STALL INFO (Member D)
+    // HAWKER CENTRE / STALL INFO (Member D)2
     // =====================================
     hawkerCentres: [
       { id: "hc1", name: "Maxwell Food Centre", location: "Singapore" }

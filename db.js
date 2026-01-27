@@ -1,9 +1,3 @@
-// js/db.js
-// =========================================================
-// Beginner-friendly shared "database" using localStorage.
-// Used by NEA, Vendors, and Customers in the SAME app.
-// =========================================================
-
 var DB_KEY = "hawkerDB_v1";
 
 // ---------- Core DB functions ----------

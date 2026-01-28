@@ -1,4 +1,4 @@
-var DEV_BYPASS = true; // 🔴 CHANGE TO false LATER
+var DEV_BYPASS = true; // change TO false LATER
 
 function requireNEA() {
   if (DEV_BYPASS) return;

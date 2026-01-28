@@ -230,14 +230,12 @@ function createSeedDB() {
     // OPERATIONAL ENHANCEMENTS (Member A)
     // =====================================
     queues: [
-      // digital queue management (Member A) :contentReference[oaicite:7]{index=7}
-      // { stallId, tickets:[{ ticketId, ticketNo, name, pax, createdDateTime, status }] }
-      // status examples: "WAITING", "CALLED", "SERVED", "CANCELLED"
       { stallId: "s1", tickets: [] },
       { stallId: "s2", tickets: [] },
       { stallId: "s3", tickets: [] },
       { stallId: "s4", tickets: [] }
     ],
+
 
     notifications: [
       // Real-time notifications for vendors (Member A) :contentReference[oaicite:8]{index=8}
@@ -280,3 +278,4 @@ function createSeedDB() {
     ]
   };
 }
+

@@ -1,0 +1,49 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <link rel="stylesheet" href="../css/styles.css">
+  <title>NEA Dashboard</title>
+</head>
+<body>
+
+<div class="navbar">
+  <div class="nav-left">
+    <span class="brand">NEA Portal</span>
+    <a href="inspection.html">Log Inspection</a>
+    <a href="dashboard.html">Dashboard</a>
+    <a href="stall.html">Stalls</a>
+  </div>
+</div>
+
+<div class="container">
+  <h1>NEA Dashboard</h1>
+
+  <div class="grid">
+    <div class="card">
+      <h2 style="margin-top:0;">Inspection Priority Queue</h2>
+      <div id="priorityList"></div>
+    </div>
+
+    <div class="card">
+      <h2 style="margin-top:0;">Repeated Offenders</h2>
+      <div id="offendersList"></div>
+    </div>
+
+    <div class="card">
+      <h2 style="margin-top:0;">Grade Expiry / Renewal Alerts</h2>
+      <div id="expiryList"></div>
+    </div>
+
+    <div class="card">
+      <h2 style="margin-top:0;">Latest Penalties Issued</h2>
+      <div id="penaltiesList"></div>
+    </div>
+  </div>
+</div>
+
+<script src="../../db.js"></script>
+<script src="../js/neaGuard.js"></script>
+<script src="../js/nea.js"></script>
+</body>
+</html>

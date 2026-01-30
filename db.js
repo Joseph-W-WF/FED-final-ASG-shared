@@ -116,7 +116,11 @@ function createSeedDB() {
     // Rental agreement tracking (Member D)
     rentalAgreements: [
       // { id, stallId, vendorUserId, startDate, endDate, monthlyRent, status, notes }
-    ],
+    { id: 'R20462', startDate: '2024-02-12', endDate: '2026-02-11', amount: 1200, status: 'Active' },
+    { id: 'R19823', startDate: '2023-11-15', endDate: '2025-11-14', amount: 1350, status: 'Active' },
+    { id: 'R18532', startDate: '2021-05-22', endDate: '2023-05-21', amount: 1000, status: 'Expired' },
+    { id: 'R17886', startDate: '2021-09-25', endDate: '2023-09-24', amount: 1500, status: 'Expired' },
+    { id: 'R16754', startDate: '2020-03-10', endDate: '2022-03-09', amount: 950, status: 'Expired' }],
 
     // =====================================
     // MENU / CUISINES (Member D)
@@ -130,9 +134,10 @@ function createSeedDB() {
     menuItems: [
       // Each item can belong to multiple cuisines via menuItemCuisines below
       // { id, stallId, name, description, price, isAvailable, imageUrl }
-      { id: "m1", stallId: "s1", name: "Chicken Rice (Roast)", description: "Classic roast chicken rice", price: 4.5, isAvailable: true, imageUrl: "" },
-      { id: "m2", stallId: "s2", name: "Nasi Lemak", description: "Coconut rice with sides", price: 4.0, isAvailable: true, imageUrl: "" }
-    ],
+    { id: 1, name: 'Chicken Rice', cuisines: ['Chinese', 'Malay'], price: 5.50 },
+    { id: 2, name: 'Nasi Lemak', cuisines: ['Malay'], price: 5.00 },
+    { id: 3, name: 'Carbonara', cuisines: ['Western'], price: 6.50 },
+    { id: 4, name: 'Prata', cuisines: ['Indian'], price: 2.60 }],
 
     menuItemCuisines: [
       // many-to-many: one menu item can belong to multiple cuisines
@@ -157,10 +162,67 @@ function createSeedDB() {
     orders: [
       // { id, customerIdOrGuestId, isGuest, stallId, createdDateTime, status, totalAmount, notes }
       // status examples: "PLACED", "PREPARING", "READY", "COMPLETED", "CANCELLED"
+        {
+        id: "o1001",
+        customerIdOrGuestId: "c1",
+        isGuest: false,
+        stallId: "s1",
+        createdDateTime: "2026-01-25 12:30",
+        status: "PLACED",
+        totalAmount: 5.50,
+        notes: ""
+      },
+      {
+        id: "o1002",
+        customerIdOrGuestId: "c1",
+        isGuest: false,
+        stallId: "s2",
+        createdDateTime: "2026-01-24 18:10",
+        status: "COMPLETED",
+        totalAmount: 5.00,
+        notes: ""
+      },
+      {
+        id: "o1003",
+        customerIdOrGuestId: "c1",
+        isGuest: false,
+        stallId: "s1",
+        createdDateTime: "2026-01-23 13:45",
+        status: "CANCELLED",
+        totalAmount: 6.10,
+        notes: ""
+      }
     ],
 
     orderItems: [
       // { id, orderId, menuItemId, qty, unitPrice, addonsTotal, lineTotal }
+      {
+        id: "oi1",
+        orderId: "o1001",
+        menuItemId: 1,
+        qty: 1,
+        unitPrice: 5.50,
+        addonsTotal: 0,
+        lineTotal: 5.50
+      },
+      {
+        id: "oi2",
+        orderId: "o1002",
+        menuItemId: 2,
+        qty: 1,
+        unitPrice: 5.00,
+        addonsTotal: 0,
+        lineTotal: 5.00
+      },
+      {
+        id: "oi3",
+        orderId: "o1003",
+        menuItemId: 1,
+        qty: 1,
+        unitPrice: 5.50,
+        addonsTotal: 0.60,
+        lineTotal: 6.10
+      }
     ],
 
     addons: [

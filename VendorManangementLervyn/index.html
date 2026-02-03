@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vendor Management - FED Hawker Centre</title>
+    <link rel="stylesheet" href="vendor-management.css">
+</head>
+<body>
+    <!-- Sidebar -->
+    <div id="sidebar" class="sidebar">
+        <div class="sidebar-header">
+            <div class="header-content">
+                <h1 class="logo">FED Hawker</h1>
+                <button id="closeSidebarBtn" class="close-sidebar-btn">✕</button>
+            </div>
+            <p class="subtitle">Vendor Portal</p>
+        </div>
+        
+        <nav class="sidebar-nav">
+            <button class="nav-item active" data-page="menu">
+                <span class="icon">☰</span>
+                <span>Menu Management</span>
+            </button>
+            <button class="nav-item" data-page="rental">
+                <span class="icon">📄</span>
+                <span>Rental Agreement</span>
+            </button>
+            <button class="nav-item" data-page="dashboard">
+                <span class="icon">📊</span>
+                <span>Performance Dashboard</span>
+            </button>
+
+            <!-- NEW: Order History -->
+            <button class="nav-item" data-page="orders">
+                <span class="icon">🧾</span>
+                <span>Order History</span>
+            </button>
+        </nav>
+
+        <div class="sidebar-footer">
+            <div class="user-profile">
+                <div class="user-avatar">LA</div>
+                <div class="user-details">
+                    <p class="user-name">Lervyn Ang</p>
+                    <p class="user-id">S10273196B</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toggle Sidebar Button (when closed) -->
+    <button id="openSidebarBtn" class="open-sidebar-btn" style="display: none;">☰</button>
+
+    <!-- Main Content -->
+    <div id="mainContent" class="main-content">
+        <!-- Header -->
+        <header class="header">
+            <h2>Vendor Management</h2>
+            <div class="current-date" id="currentDate"></div>
+        </header>
+
+        <!-- Menu Management Page -->
+        <main id="menuPage" class="page active">
+            <div class="content-card">
+                <div class="card-header">
+                    <h3>Menu Management</h3>
+                    <button id="addMenuBtn" class="btn-primary">
+                        <span class="icon">+</span>
+                        Add New Item
+                    </button>
+                </div>
+
+                <div class="search-box">
+                    <input type="text" id="menuSearch" placeholder="Search menu items...">
+                </div>
+
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Item Name</th>
+                                <th>Cuisines</th>
+                                <th>Price</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="menuTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+
+        <!-- Rental Agreement Page -->
+        <main id="rentalPage" class="page">
+            <div class="content-card">
+                <div class="card-header">
+                    <h3>Rental Agreements</h3>
+                    <button id="addRentalBtn" class="btn-primary">
+                        <span class="icon">+</span>
+                        Add Agreement
+                    </button>
+                </div>
+
+                <div class="filter-section">
+                    <div class="search-box">
+                        <input type="text" id="rentalSearch" placeholder="Search by Agreement ID...">
+                    </div>
+                    <div class="filter-controls">
+                        <select id="dateFilter">
+                            <option value="newest">Newest First</option>
+                            <option value="oldest">Oldest First</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Agreement ID</th>
+                                <th>Start Date</th>
+                                <th>End Date</th>
+                                <th>Amount</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="rentalTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+
+        <!-- Performance Dashboard Page -->
+        <main id="dashboardPage" class="page">
+            <div class="content-card">
+                <div class="card-header">
+                    <h3>Stall Performance Dashboard</h3>
+
+                    <!-- SAME UI AREA: just month inputs instead of date -->
+                    <div class="filter-controls">
+                        <input type="month" id="startDateFilter">
+                        <input type="month" id="endDateFilter">
+                        <button class="btn-primary">Apply Filter</button>
+                    </div>
+                </div>
+
+                <!-- Metrics Cards -->
+                <div class="metrics-grid">
+                    <div class="metric-card metric-indigo">
+                        <p class="metric-label">Total Orders</p>
+                        <p class="metric-value">150</p>
+                    </div>
+                    <div class="metric-card metric-green">
+                        <p class="metric-label">Revenue</p>
+                        <p class="metric-value">$5,200</p>
+                    </div>
+                </div>
+
+                <!-- Sales Trend Chart -->
+                <div class="chart-section">
+                    <h4>Sales Trend</h4>
+                    <div id="salesChart" class="chart-container"></div>
+                </div>
+
+                <!-- Top Items Chart -->
+                <div class="chart-section">
+                    <h4>Top Item Menu</h4>
+                    <div id="topItemsChart" class="chart-container"></div>
+                </div>
+            </div>
+        </main>
+
+        <!-- NEW: Order History Page (Vendor POV) -->
+        <main id="ordersPage" class="page">
+            <div class="content-card vm-orders">
+                <div class="card-header">
+                    <h3>Order History</h3>
+                </div>
+
+                <div class="filter-section">
+                    <div class="search-box">
+                        <input type="text" id="vendorOrderSearch" placeholder="Search by item / customer...">
+                    </div>
+                    <div class="filter-controls">
+                        <select id="vendorOrderTab">
+                            <option value="active">Active</option>
+                            <option value="completed">Completed</option>
+                            <option value="cancelled">Cancelled</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div id="vendorOrdersList" class="vm-orders-list"></div>
+
+                <div id="vendorOrdersEmpty" class="vm-empty" style="display:none;">
+                    <div class="vm-empty-icon">🧾</div>
+                    <h3>No orders found</h3>
+                    <p>Try changing the filter or search keyword.</p>
+                </div>
+
+                <!-- Bottom dashboard: Top 5 customers -->
+                <div class="vm-top-customers">
+                    <h4>Top 5 Customers</h4>
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Customer</th>
+                                    <th>Visits</th>
+                                    <th>Total Spent</th>
+                                </tr>
+                            </thead>
+                            <tbody id="topCustomersBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Add/Edit Menu Modal -->
+    <div id="menuModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">Add New Menu Item</h3>
+                <button class="close-btn" onclick="closeMenuModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Item Name</label>
+                    <input type="text" id="itemName" placeholder="e.g., Chicken Rice">
+                </div>
+
+                <div class="form-group">
+                    <label>Price ($)</label>
+                    <input type="number" id="itemPrice" step="0.10" placeholder="5.50">
+                </div>
+
+                <div class="form-group">
+                    <label>Cuisines (select multiple)</label>
+                    <div class="checkbox-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" class="cuisine-checkbox" value="Chinese">
+                            <span>Chinese</span>
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" class="cuisine-checkbox" value="Malay">
+                            <span>Malay</span>
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" class="cuisine-checkbox" value="Indian">
+                            <span>Indian</span>
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" class="cuisine-checkbox" value="Western">
+                            <span>Western</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="modal-actions">
+                    <button class="btn-primary" onclick="saveMenuItem()">
+                        <span>💾</span> Save
+                    </button>
+                    <button class="btn-secondary" onclick="closeMenuModal()">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Rental Renewal Modal -->
+    <div id="renewalModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="renewalModalTitle">Add Rental Agreement</h3>
+                <button class="close-btn" onclick="closeRenewalModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Agreement ID</label>
+                    <input type="text" id="agreementId" placeholder="Auto-generated" disabled>
+                </div>
+
+                <div class="form-group">
+                    <label>Start Date</label>
+                    <input type="date" id="startDate">
+                </div>
+
+                <div class="form-group">
+                    <label>End Date</label>
+                    <input type="date" id="endDate">
+                </div>
+
+                <div class="form-group">
+                    <label>Rental Amount ($)</label>
+                    <input type="number" id="rentalAmount" placeholder="e.g., 1200">
+                    <p class="form-hint">Rental fee: $<span id="rentalFeeDisplay">0.00</span></p>
+                </div>
+
+                <p class="form-note">Payment will be 3 working days to confirm</p>
+
+                <div class="modal-actions">
+                    <button class="btn-primary" onclick="saveRentalAgreement()">
+                        <span>💾</span> Save Agreement
+                    </button>
+                    <button class="btn-secondary" onclick="closeRenewalModal()">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- View Agreement Details Modal -->
+    <div id="viewAgreementModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Agreement Details</h3>
+                <button class="close-btn" onclick="closeViewAgreementModal()">✕</button>
+            </div>
+            <div class="modal-body" id="agreementDetailsBody"></div>
+        </div>
+    </div>
+
+    <script src="../db.js"></script>
+    <script src="vendor-management.js"></script>
+
+</body>
+</html>

@@ -11,7 +11,7 @@
     <div id="sidebar" class="sidebar">
         <div class="sidebar-header">
             <div class="header-content">
-                <h1 class="logo">FED Hawker</h1>
+                <h1 class="logo">FED Hawker: Clemens Kitchen</h1>
                 <button id="closeSidebarBtn" class="close-sidebar-btn">✕</button>
             </div>
             <p class="subtitle">Vendor Portal</p>
@@ -30,8 +30,6 @@
                 <span class="icon">📊</span>
                 <span>Performance Dashboard</span>
             </button>
-
-            <!-- NEW: Order History -->
             <button class="nav-item" data-page="orders">
                 <span class="icon">🧾</span>
                 <span>Order History</span>
@@ -52,13 +50,25 @@
     <!-- Toggle Sidebar Button (when closed) -->
     <button id="openSidebarBtn" class="open-sidebar-btn" style="display: none;">☰</button>
 
+    <!-- Blue Top Header (replaces old white header) -->
+    <header class="top-header">
+        <div class="top-header-content">
+            <div class="top-header-logo">
+                <h1 class="top-header-title">FED Hawker: Clemens Kitchen</h1>
+                <p class="top-header-subtitle">Vendor Portal</p>
+            </div>
+            <div class="top-header-user">
+                <div class="top-header-avatar">LA</div>
+                <div class="top-header-details">
+                    <p class="top-header-name">Lervyn Ang</p>
+                    <p class="top-header-id">S10273196B</p>
+                </div>
+            </div>
+        </div>
+    </header>
+
     <!-- Main Content -->
     <div id="mainContent" class="main-content">
-        <!-- Header -->
-        <header class="header">
-            <h2>Vendor Management</h2>
-            <div class="current-date" id="currentDate"></div>
-        </header>
 
         <!-- Menu Management Page -->
         <main id="menuPage" class="page active">
@@ -137,8 +147,6 @@
             <div class="content-card">
                 <div class="card-header">
                     <h3>Stall Performance Dashboard</h3>
-
-                    <!-- SAME UI AREA: just month inputs instead of date -->
                     <div class="filter-controls">
                         <input type="month" id="startDateFilter">
                         <input type="month" id="endDateFilter">
@@ -146,7 +154,6 @@
                     </div>
                 </div>
 
-                <!-- Metrics Cards -->
                 <div class="metrics-grid">
                     <div class="metric-card metric-indigo">
                         <p class="metric-label">Total Orders</p>
@@ -158,13 +165,11 @@
                     </div>
                 </div>
 
-                <!-- Sales Trend Chart -->
                 <div class="chart-section">
                     <h4>Sales Trend</h4>
                     <div id="salesChart" class="chart-container"></div>
                 </div>
 
-                <!-- Top Items Chart -->
                 <div class="chart-section">
                     <h4>Top Item Menu</h4>
                     <div id="topItemsChart" class="chart-container"></div>
@@ -172,7 +177,7 @@
             </div>
         </main>
 
-        <!-- NEW: Order History Page (Vendor POV) -->
+        <!-- Order History Page (Vendor POV) -->
         <main id="ordersPage" class="page">
             <div class="content-card vm-orders">
                 <div class="card-header">
@@ -200,9 +205,8 @@
                     <p>Try changing the filter or search keyword.</p>
                 </div>
 
-                <!-- Bottom dashboard: Top 5 customers -->
                 <div class="vm-top-customers">
-                    <h4>Top 5 Customers</h4>
+                    <h4>Top Customers</h4>
                     <div class="table-container">
                         <table class="data-table">
                             <thead>
@@ -232,12 +236,10 @@
                     <label>Item Name</label>
                     <input type="text" id="itemName" placeholder="e.g., Chicken Rice">
                 </div>
-
                 <div class="form-group">
                     <label>Price ($)</label>
                     <input type="number" id="itemPrice" step="0.10" placeholder="5.50">
                 </div>
-
                 <div class="form-group">
                     <label>Cuisines (select multiple)</label>
                     <div class="checkbox-group">
@@ -259,7 +261,6 @@
                         </label>
                     </div>
                 </div>
-
                 <div class="modal-actions">
                     <button class="btn-primary" onclick="saveMenuItem()">
                         <span>💾</span> Save
@@ -282,25 +283,20 @@
                     <label>Agreement ID</label>
                     <input type="text" id="agreementId" placeholder="Auto-generated" disabled>
                 </div>
-
                 <div class="form-group">
                     <label>Start Date</label>
                     <input type="date" id="startDate">
                 </div>
-
                 <div class="form-group">
                     <label>End Date</label>
                     <input type="date" id="endDate">
                 </div>
-
                 <div class="form-group">
                     <label>Rental Amount ($)</label>
                     <input type="number" id="rentalAmount" placeholder="e.g., 1200">
                     <p class="form-hint">Rental fee: $<span id="rentalFeeDisplay">0.00</span></p>
                 </div>
-
                 <p class="form-note">Payment will be 3 working days to confirm</p>
-
                 <div class="modal-actions">
                     <button class="btn-primary" onclick="saveRentalAgreement()">
                         <span>💾</span> Save Agreement
@@ -322,8 +318,15 @@
         </div>
     </div>
 
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-container">
+            <p>&copy; 2026 FED Hawker Centre Management System | Lervyn Ang (S10273196B)</p>
+            <p class="footer-note">Assignment for Front-End Development</p>
+        </div>
+    </footer>
+
     <script src="../db.js"></script>
     <script src="vendor-management.js"></script>
-
 </body>
 </html>

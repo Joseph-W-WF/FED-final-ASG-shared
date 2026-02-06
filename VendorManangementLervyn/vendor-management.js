@@ -1,42 +1,28 @@
 // ========================================
 // VENDOR MANAGEMENT JAVASCRIPT
 // Student: Lervyn Ang (S10273196B)
+// Uses db.js (window.DB)
 // ========================================
 
 let editingMenuItemId = null;
 let editingRentalId = null;
 
-// IMPORTANT: set vendor stall name here (owner POV filter)
-// Must match order.stall values in DB
+// vendor stall name 
 const VENDOR_STALL_NAME = "Clemens Kitchen";
 
 // -------------------- INIT --------------------
 document.addEventListener("DOMContentLoaded", () => {
-  updateCurrentDate();
   setupNavigation();
   setupSidebarToggle();
   setupMenuManagement();
   setupRentalManagement();
-  setupDashboardMonthFilter(); // month-to-month
-  setupVendorOrderHistory();   // vendor order history tab + search
+  setupDashboardMonthFilter();
+  setupVendorOrderHistory();
 
   displayMenuItems();
   displayRentalAgreements();
   renderVendorOrders();
 });
-
-// -------------------- DATE --------------------
-const updateCurrentDate = () => {
-  const el = document.getElementById("currentDate");
-  if (!el) return;
-
-  el.textContent = new Date().toLocaleDateString("en-SG", {
-    weekday: "long",
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
-};
 
 // -------------------- NAV --------------------
 const setupNavigation = () => {
@@ -50,9 +36,7 @@ const setupNavigation = () => {
       const page = document.getElementById(btn.dataset.page + "Page");
       if (page) page.classList.add("active");
 
-      if (btn.dataset.page === "orders") {
-        renderVendorOrders();
-      }
+      if (btn.dataset.page === "orders") renderVendorOrders();
     });
   });
 };
@@ -63,18 +47,21 @@ const setupSidebarToggle = () => {
   const main = document.getElementById("mainContent");
   const open = document.getElementById("openSidebarBtn");
   const close = document.getElementById("closeSidebarBtn");
+  const headerContent = document.querySelector(".top-header-content");
 
   if (!sidebar || !main || !open || !close) return;
 
   close.onclick = () => {
     sidebar.classList.add("closed");
     main.classList.add("expanded");
+    if (headerContent) headerContent.style.paddingLeft = "20px";
     open.style.display = "block";
   };
 
   open.onclick = () => {
     sidebar.classList.remove("closed");
     main.classList.remove("expanded");
+    if (headerContent) headerContent.style.paddingLeft = "276px";
     open.style.display = "none";
   };
 };
@@ -214,7 +201,6 @@ const closeRenewalModal = () => document.getElementById("renewalModal").classLis
 
 const applyRentalFilters = () => {
   const list = DB.getRentalAgreements();
-
   const search = document.getElementById("rentalSearch").value.toLowerCase();
   const order = document.getElementById("dateFilter").value;
 
@@ -282,9 +268,7 @@ const saveRentalAgreement = () => {
   if (new Date(startDate) > new Date(endDate)) return alert("Start date cannot be later than end date.");
   if (!amountStr || Number.isNaN(amount) || amount <= 0) return alert("Please enter a valid rental amount.");
 
-  const today = new Date();
-  const end = new Date(endDate);
-  const status = end >= today ? "Active" : "Expired";
+  const status = new Date(endDate) >= new Date() ? "Active" : "Expired";
 
   if (editingRentalId === null) DB.addRentalAgreement({ id: agreementId, startDate, endDate, amount, status });
   else DB.updateRentalAgreement(editingRentalId, { startDate, endDate, amount, status });
@@ -311,7 +295,6 @@ const editRentalAgreement = (id) => {
 const deleteRentalAgreement = (id) => {
   const r = DB.getRentalById(id);
   if (!r) return;
-
   if (!confirm(`Delete agreement ${r.id}?`)) return;
   DB.deleteRentalAgreement(id);
   applyRentalFilters();
@@ -349,21 +332,17 @@ const applyDashboardMonthFilter = () => {
 
   if (start > end) return alert("Start month cannot be later than end month.");
 
-  const months = getMonthsBetween(start, end);
-  generateDashboardMonthData(months);
+  generateDashboardMonthData(getMonthsBetween(start, end));
 };
 
 const parseMonthValue = (yyyyMm) => {
   const parts = yyyyMm.split("-");
-  const year = Number(parts[0]);
-  const monthIndex = Number(parts[1]) - 1;
-  return new Date(year, monthIndex, 1);
+  return new Date(Number(parts[0]), Number(parts[1]) - 1, 1);
 };
 
 const getMonthsBetween = (startDate, endDate) => {
   const result = [];
   const d = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
-
   while (d <= endDate) {
     result.push(new Date(d.getFullYear(), d.getMonth(), 1));
     d.setMonth(d.getMonth() + 1);
@@ -378,12 +357,9 @@ const generateDashboardMonthData = (months) => {
   const salesData = months.map((m) => {
     const monthlyOrders = Math.floor(Math.random() * 300 + 120);
     const monthlyRevenue = monthlyOrders * Math.floor(Math.random() * 8 + 8);
-
     totalOrders += monthlyOrders;
     revenue += monthlyRevenue;
-
-    const label = m.toLocaleDateString("en-SG", { month: "short", year: "numeric" });
-    return { label, value: monthlyRevenue };
+    return { label: m.toLocaleDateString("en-SG", { month: "short", year: "numeric" }), value: monthlyRevenue };
   });
 
   updateMetrics(totalOrders, revenue);
@@ -392,11 +368,9 @@ const generateDashboardMonthData = (months) => {
 };
 
 const updateMetrics = (orders, revenue) => {
-  const first = document.querySelector(".metric-value");
   const all = document.querySelectorAll(".metric-value");
-  if (!first || all.length < 2) return;
-
-  first.textContent = String(orders);
+  if (all.length < 2) return;
+  all[0].textContent = String(orders);
   all[1].textContent = `$${revenue.toLocaleString()}`;
 };
 
@@ -411,9 +385,7 @@ const renderSalesChart = (salesData) => {
       <div class="chart-bar">
         <span class="chart-label">${s.label}</span>
         <div class="chart-bar-container">
-          <div class="chart-bar-fill chart-bar-indigo" style="width:${(s.value / max) * 100}%">
-            $${s.value}
-          </div>
+          <div class="chart-bar-fill chart-bar-indigo" style="width:${(s.value / max) * 100}%">$${s.value}</div>
         </div>
       </div>
     `
@@ -441,9 +413,7 @@ const renderTopItems = (totalOrders) => {
         <span class="item-rank">${idx + 1}</span>
         <span class="item-name">${i.name}</span>
         <div class="chart-bar-container">
-          <div class="chart-bar-fill chart-bar-green" style="width:${(i.sales / max) * 100}%">
-            ${i.sales}
-          </div>
+          <div class="chart-bar-fill chart-bar-green" style="width:${(i.sales / max) * 100}%">${i.sales}</div>
         </div>
       </div>
     `
@@ -455,7 +425,6 @@ const renderTopItems = (totalOrders) => {
 const setupVendorOrderHistory = () => {
   const search = document.getElementById("vendorOrderSearch");
   const tab = document.getElementById("vendorOrderTab");
-
   if (search) search.addEventListener("input", () => renderVendorOrders());
   if (tab) tab.addEventListener("change", () => renderVendorOrders());
 };
@@ -481,9 +450,8 @@ const renderVendorOrders = () => {
 
   if (searchTerm) {
     vendorOrders = vendorOrders.filter((o) => {
-      const item = (o.item || "").toLowerCase();
-      const cust = (o.customerName || "").toLowerCase();
-      return item.includes(searchTerm) || cust.includes(searchTerm);
+      return (o.item || "").toLowerCase().includes(searchTerm) ||
+             (o.customerName || "").toLowerCase().includes(searchTerm);
     });
   }
 
@@ -501,47 +469,46 @@ const renderVendorOrders = () => {
   renderTopCustomersTable(topBody, all.filter((o) => o.stall === VENDOR_STALL_NAME));
 };
 
+// Card: collapsed by default — shows Customer Name + Order ID.
+// Click toggles .open class to reveal full details.
 const createVendorOrderCard = (o) => {
-  const dateText = formatVendorDate(o.date);
-
   const statusClass =
-    o.status === "Collected"
-      ? "vm-status-collected"
-      : o.status === "active"
-      ? "vm-status-active"
-      : "vm-status-cancelled";
+    o.status === "Collected" ? "vm-status-collected" :
+    o.status === "active"    ? "vm-status-active"    : "vm-status-cancelled";
 
   return `
-    <div class="vm-order-card">
-      <div class="vm-order-header">
-        <div>
-          <div class="vm-order-title">${o.item}</div>
-          <div class="vm-order-meta">👤 ${o.customerName || "Customer"}</div>
-          <div class="vm-order-meta">🧾 Order #${o.orderNumber || "-"}</div>
-          <div class="vm-order-date">🕐 ${dateText}</div>
+    <div class="vm-order-card" onclick="toggleOrderCard(this)">
+      <!-- Always visible: customer name, order id, price, status -->
+      <div class="vm-order-collapsed">
+        <div class="vm-order-collapsed-left">
+          <div class="vm-order-customer">👤 ${o.customerName || "Customer"}</div>
+          <div class="vm-order-id">📋 Order #${o.orderNumber || "-"}</div>
         </div>
-        <div>
+        <div class="vm-order-collapsed-right">
           <div class="vm-order-price">$${Number(o.price).toFixed(2)}</div>
           <span class="vm-status ${statusClass}">${o.status}</span>
         </div>
       </div>
 
-      <div class="vm-order-details">
+      <!-- Hidden until .open is added: full details -->
+      <div class="vm-order-expanded">
+        <div><strong>Item:</strong> ${o.item}</div>
         <div><strong>Quantity:</strong> ${o.quantity || 1}</div>
         <div><strong>Payment:</strong> ${o.paymentMethod || "-"}</div>
+        <div><strong>Date:</strong> ${formatVendorDate(o.date)}</div>
       </div>
     </div>
   `;
 };
 
+// Toggle expand/collapse on a single card
+const toggleOrderCard = (card) => {
+  card.classList.toggle("open");
+};
+
 const formatVendorDate = (iso) => {
-  const d = new Date(iso);
-  return d.toLocaleDateString("en-SG", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
+  return new Date(iso).toLocaleDateString("en-SG", {
+    day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
   });
 };
 
@@ -551,35 +518,24 @@ const renderTopCustomersTable = (tbodyEl, vendorAllOrders) => {
   vendorAllOrders.forEach((o) => {
     const name = o.customerName || "Customer";
     if (!map[name]) map[name] = { visits: 0, spent: 0 };
-
     if (o.status !== "cancelled") map[name].visits += 1;
     if (o.status === "Collected") map[name].spent += Number(o.price) || 0;
   });
 
-  const rows = Object.keys(map).map((name) => ({
-    name,
-    visits: map[name].visits,
-    spent: map[name].spent,
-  }));
+  const rows = Object.keys(map)
+    .map((name) => ({ name, visits: map[name].visits, spent: map[name].spent }))
+    .sort((a, b) => (b.spent !== a.spent ? b.spent - a.spent : b.visits - a.visits))
+    .slice(0, 5);
 
-  rows.sort((a, b) => (b.spent !== a.spent ? b.spent - a.spent : b.visits - a.visits));
-
-  const top5 = rows.slice(0, 5);
-
-  tbodyEl.innerHTML =
-    top5.length === 0
-      ? `<tr><td colspan="3">No customer data yet.</td></tr>`
-      : top5
-          .map(
-            (c) => `
-            <tr>
-              <td><strong>${c.name}</strong></td>
-              <td>${c.visits}</td>
-              <td>$${c.spent.toFixed(2)}</td>
-            </tr>
-          `
-          )
-          .join("");
+  tbodyEl.innerHTML = rows.length === 0
+    ? `<tr><td colspan="3">No customer data yet.</td></tr>`
+    : rows.map((c) => `
+        <tr>
+          <td><strong>${c.name}</strong></td>
+          <td>${c.visits}</td>
+          <td>$${c.spent.toFixed(2)}</td>
+        </tr>
+      `).join("");
 };
 
 // -------------------- Expose onclick functions --------------------
@@ -594,3 +550,5 @@ window.viewAgreementDetails = viewAgreementDetails;
 window.closeViewAgreementModal = closeViewAgreementModal;
 window.editRentalAgreement = editRentalAgreement;
 window.deleteRentalAgreement = deleteRentalAgreement;
+
+window.toggleOrderCard = toggleOrderCard;

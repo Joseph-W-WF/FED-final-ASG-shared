@@ -5,6 +5,7 @@ window.FED = window.FED || {};
     console.log("FED Hawker app initialising...");
     FED.cart.updateBadge();
 
+    FED.sidenav.init();
     FED.profile.init();
     FED.pages.browse.init();
     FED.pages.menu.init();      

@@ -1,11 +1,15 @@
-var DEV_BYPASS = true; // change TO false LATER
+// regulatoryCompliance-(Aydan)/js/neaGuard.js
+// DEV MODE: allow access without login first.
+// Later, set DEV_MODE = false when your teammate finishes login.
+
+var DEV_MODE = true;
 
 function requireNEA() {
-  if (DEV_BYPASS) return;
+  if (DEV_MODE) return;
 
-  var role = sessionStorage.getItem("sessionRole");
+  var role = localStorage.getItem("currentRole");
   if (role !== "NEA") {
-    alert("Access denied. NEA accounts only.");
-    window.location.href = "index.html";
+    alert("NEA access only.");
+    window.location.href = "../../index.html";
   }
 }

@@ -3,10 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <link rel="stylesheet" href="../css/styles.css">
-  <title>Stalls</title>
-
-  <!-- Chart.js (CDN) -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <title>Schedule Inspection</title>
 </head>
 <body>
 
@@ -21,7 +18,7 @@
       <a class="nav-item" href="schedule.html"><span class="nav-icon">🗓️</span><span>Schedule Inspection</span></a>
       <a class="nav-item" href="inspection.html"><span class="nav-icon">🧾</span><span>Log Inspection</span></a>
       <a class="nav-item" href="dashboard.html"><span class="nav-icon">📊</span><span>Dashboard</span></a>
-      <a class="nav-item active" href="stall.html"><span class="nav-icon">🏪</span><span>Stalls</span></a>
+      <a class="nav-item" href="stall.html"><span class="nav-icon">🏪</span><span>Stalls</span></a>
     </nav>
 
     <div class="sidebar-bottom">
@@ -37,40 +34,24 @@
 
   <div class="content">
     <header class="topbar">
-      <h1 class="page-title">Stalls</h1>
+      <h1 class="page-title">Schedule Inspection</h1>
       <div class="topbar-right" id="todayText"></div>
     </header>
 
     <main class="main">
-      <div class="grid">
-        <!-- LEFT: Charts -->
+      <div class="grid" style="grid-template-columns: 1fr;">
         <div class="card">
-          <h2 style="margin-top:0;">Hygiene Grade Trends (Monthly)</h2>
-          <p class="small" style="margin-top:0;">X-axis shows months. Latest inspection for each month is plotted.</p>
+          <h2 style="margin-top:0;">New Schedule</h2>
+          <p class="small" style="margin-top:0;">Create an upcoming inspection schedule (no grade yet).</p>
 
-          <label>Select Stall</label>
+          <label>Stall</label>
           <select id="stallSelect"></select>
 
-          <div style="margin-top:14px;">
-            <!-- IMPORTANT: stall.js expects id="gradeChart" -->
-            <canvas id="gradeChart" height="120"></canvas>
-          </div>
+          <label style="margin-top:12px;">Scheduled Date</label>
+          <input id="scheduledDate" type="date" />
 
-          <hr style="margin:18px 0; border:0; border-top:1px solid #eee;">
-
-          <h2 style="margin:0;">Inspection Scores (Monthly)</h2>
-          <p class="small" style="margin-top:6px;">Scores are out of 100. Latest inspection for each month is plotted.</p>
-
-          <div style="margin-top:14px;">
-            <!-- IMPORTANT: stall.js expects id="scoreChart" -->
-            <canvas id="scoreChart" height="120"></canvas>
-          </div>
-        </div>
-
-        <!-- RIGHT: Table -->
-        <div class="card">
-          <h2 style="margin-top:0;">Historical Grades (Transparency)</h2>
-          <div id="historyTable" class="small"></div>
+          <button id="scheduleBtn" style="margin-top:14px;">Schedule</button>
+          <p id="msg" class="small"></p>
         </div>
       </div>
     </main>
@@ -85,6 +66,6 @@
 
 <script src="../../db.js"></script>
 <script src="../js/neaGuard.js"></script>
-<script src="../js/stall.js"></script>
+<script src="../js/schedule.js"></script>
 </body>
 </html>

@@ -8,23 +8,23 @@ var expiryList = document.getElementById("expiryList");
 var penaltiesList = document.getElementById("penaltiesList");
 
 renderDashboard();
+renderKPIs();
+
 
 function renderDashboard() {
   db = loadDB();
-
   renderPriorityQueue();
   renderRepeatedOffenders();
   renderExpiryAlerts();
   renderLatestPenalties();
 }
 
-// ------------------ Priority Queue ------------------
-// Simple scoring:
+// Priority scoring (simple & explainable):
 // - Last grade D = +100
 // - Last grade C = +60
 // - Last grade B = +20
-// - Any penalty in last 30 days = +40
-// - Grade expiring within 30 days = +50
+// - Penalty in last 30 days = +40
+// - Grade expiring in 30 days = +50
 function renderPriorityQueue() {
   var list = [];
 
@@ -40,8 +40,7 @@ function renderPriorityQueue() {
 
       if (isExpiringSoon(last.expiryDate, 30)) score += 50;
     } else {
-      // never inspected => medium priority
-      score += 40;
+      score += 40; // never inspected
     }
 
     if (hasRecentPenalty(s.id, 30)) score += 40;
@@ -51,36 +50,29 @@ function renderPriorityQueue() {
 
   list.sort(function (a, b) { return b.priorityScore - a.priorityScore; });
 
-  var html = "<ol>";
+  var html = "<ol style='margin:0; padding-left:18px;'>";
   for (var j = 0; j < Math.min(5, list.length); j++) {
     var item = list[j];
     var lastText = item.last ? ("Last Grade: " + item.last.grade + " (" + item.last.date + ")") : "No inspections yet";
-    html += "<li><strong>" + item.stall.name + "</strong> — " + lastText + " — Score: " + item.priorityScore + "</li>";
+    html += "<li><strong>" + item.stall.name + "</strong> — " + lastText + " — Priority: " + item.priorityScore + "</li>";
   }
   html += "</ol>";
 
   priorityList.innerHTML = html;
 }
 
-// ------------------ Repeated Offenders ------------------
-// Repeat offender rule (simple):
-// - 2 or more penalties in last 180 days OR
-// - 2 or more CRITICAL violations in last 180 days
+// Repeat offender rule:
+// - 2+ penalties in last 180 days OR 2+ critical violations in last 180 days
 function renderRepeatedOffenders() {
   var offenders = [];
 
   for (var i = 0; i < db.stalls.length; i++) {
     var s = db.stalls[i];
-
     var pCount = countPenaltiesDays(s.id, 180);
     var cCount = countCriticalViolationsDays(s.id, 180);
 
     if (pCount >= 2 || cCount >= 2) {
-      offenders.push({
-        stall: s,
-        penalties: pCount,
-        critical: cCount
-      });
+      offenders.push({ stall: s, penalties: pCount, critical: cCount });
     }
   }
 
@@ -98,7 +90,6 @@ function renderRepeatedOffenders() {
   offendersList.innerHTML = html;
 }
 
-// ------------------ Grade Expiry Alerts ------------------
 function renderExpiryAlerts() {
   var soon = [];
   for (var i = 0; i < db.stalls.length; i++) {
@@ -116,16 +107,16 @@ function renderExpiryAlerts() {
     return;
   }
 
-  var html = "<ul>";
+  var html = "<ul style='margin:0; padding-left:18px;'>";
   for (var j = 0; j < soon.length; j++) {
-    html += "<li><strong>" + soon[j].stall.name + "</strong> — Grade " + soon[j].grade + " expires on <strong>" + soon[j].expiryDate + "</strong></li>";
+    html += "<li><strong>" + soon[j].stall.name + "</strong> — Grade " + soon[j].grade +
+      " expires on <strong>" + soon[j].expiryDate + "</strong></li>";
   }
   html += "</ul>";
 
   expiryList.innerHTML = html;
 }
 
-// ------------------ Latest penalties ------------------
 function renderLatestPenalties() {
   var p = db.penalties || [];
   if (p.length === 0) {
@@ -133,11 +124,8 @@ function renderLatestPenalties() {
     return;
   }
 
-  // sort newest first
   var copy = p.slice();
-  copy.sort(function (a, b) {
-    return new Date(b.createdDateTime) - new Date(a.createdDateTime);
-  });
+  copy.sort(function (a, b) { return new Date(b.createdDateTime) - new Date(a.createdDateTime); });
 
   var html = "<table class='table'><thead><tr><th>Stall</th><th>Action</th><th>Date</th></tr></thead><tbody>";
   for (var i = 0; i < Math.min(6, copy.length); i++) {
@@ -149,12 +137,10 @@ function renderLatestPenalties() {
   penaltiesList.innerHTML = html;
 }
 
-// ------------------ Helpers ------------------
+/* Helpers */
 function getLastGradeEntry(stall) {
   var h = stall.gradeHistory || [];
   if (h.length === 0) return null;
-
-  // last entry is latest if you always push newest
   return h[h.length - 1];
 }
 
@@ -162,15 +148,12 @@ function isExpiringSoon(expiryDate, days) {
   if (!expiryDate) return false;
   var now = new Date();
   var exp = new Date(expiryDate);
-
   var diffMs = exp - now;
   var diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
   return diffDays >= 0 && diffDays <= days;
 }
 
-function hasRecentPenalty(stallId, days) {
-  return countPenaltiesDays(stallId, days) > 0;
-}
+function hasRecentPenalty(stallId, days) { return countPenaltiesDays(stallId, days) > 0; }
 
 function countPenaltiesDays(stallId, days) {
   var p = db.penalties || [];
@@ -203,11 +186,8 @@ function countCriticalViolationsDays(stallId, days) {
     var diffDays = Math.floor((now - dt) / (1000 * 60 * 60 * 24));
     if (diffDays > days) continue;
 
-    // count critical violations for this inspection
     for (var j = 0; j < violations.length; j++) {
-      if (violations[j].inspectionId === inspections[i].id && violations[j].severity === "CRITICAL") {
-        count++;
-      }
+      if (violations[j].inspectionId === inspections[i].id && violations[j].severity === "CRITICAL") count++;
     }
   }
 
@@ -215,8 +195,45 @@ function countCriticalViolationsDays(stallId, days) {
 }
 
 function stallName(stallId) {
-  for (var i = 0; i < db.stalls.length; i++) {
-    if (db.stalls[i].id === stallId) return db.stalls[i].name;
-  }
+  for (var i = 0; i < db.stalls.length; i++) if (db.stalls[i].id === stallId) return db.stalls[i].name;
   return stallId;
 }
+function renderKPIs() {
+  db = loadDB();
+
+  var inspEl = document.getElementById("kpiInspections");
+  var avgEl = document.getElementById("kpiAvgScore");
+  var expEl = document.getElementById("kpiExpiring");
+  var penEl = document.getElementById("kpiPenalties");
+
+  var inspections = db.inspections || [];
+  var penalties = db.penalties || [];
+
+  // total inspections
+  if (inspEl) inspEl.textContent = inspections.length;
+
+  // average score
+  var total = 0;
+  var count = 0;
+  for (var i = 0; i < inspections.length; i++) {
+    if (typeof inspections[i].score === "number") {
+      total += inspections[i].score;
+      count++;
+    }
+  }
+  var avg = count === 0 ? "-" : (total / count).toFixed(1);
+  if (avgEl) avgEl.textContent = avg;
+
+  // expiring within 30 days (same logic as expiry list)
+  var expiringCount = 0;
+  for (var j = 0; j < db.stalls.length; j++) {
+    var last = getLastGradeEntry(db.stalls[j]);
+    if (!last) continue;
+    if (isExpiringSoon(last.expiryDate, 30)) expiringCount++;
+  }
+  if (expEl) expEl.textContent = expiringCount;
+
+  // total penalties
+  if (penEl) penEl.textContent = penalties.length;
+}
+

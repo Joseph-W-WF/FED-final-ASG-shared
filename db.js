@@ -45,7 +45,7 @@ function addDaysToDate(dateStr, days) {
 
 function createSeedDB() {
   // -----------------------------
-  // Fixed stalls (match teammate)
+  // Fixed stalls (match teammate names)
   // -----------------------------
   const stalls = [
     { id: "s1", hawkerCentreId: "hc1", name: "Clemens Kitchen", vendorUserId: "v1", gradeHistory: [] },
@@ -59,7 +59,7 @@ function createSeedDB() {
   for (let i = 0; i < stalls.length; i++) stallNameToId[stalls[i].name] = stalls[i].id;
 
   // -----------------------------
-  // Orders (kept from your version)
+  // Orders (vendor demo data)
   // -----------------------------
   const yourOrders = [
     { id: 1, item: "Laksa", price: 5.5, date: "2026-01-20T20:30:00", stall: "Clemens Kitchen", status: "Collected", quantity: 1, orderNumber: "ORD001", paymentMethod: "PayNow", customerName: "Alicia Tan" },
@@ -214,95 +214,101 @@ function createSeedDB() {
   ];
 
   // ==========================================================
-  // MEMBER A: Seed 12 months of grade history + inspections
+  // MEMBER A: Seed 12 months gradeHistory (charts work)
+  // AND force an expiry soon (renewal alerts will show)
   // ==========================================================
-  function pushMonthlyHistory(stallId, year, grades, scores) {
+  function seedLast12Months(stallId, grades, scores) {
     const stall = stalls.find((s) => s.id === stallId);
     if (!stall) return;
 
-    for (let m = 1; m <= 12; m++) {
-      const mm = String(m).padStart(2, "0");
-      const date = `${year}-${mm}-15`;
-      const grade = grades[m - 1];
-      const score = scores[m - 1];
+    const now = new Date();
+    const base = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    for (let i = 11; i >= 0; i--) {
+      const d = new Date(base.getFullYear(), base.getMonth() - i, 15);
+      const date = d.toISOString().slice(0, 10);
+      const g = grades[11 - i];
+      const sc = scores[11 - i];
+
       stall.gradeHistory.push({
         date,
-        grade,
-        score,
+        grade: g,
+        score: sc,
         expiryDate: addDaysToDate(date, 180),
       });
     }
   }
 
-  // 12 months in 2026 for graphs (A/B for Clemens, more issues for Indian)
-  pushMonthlyHistory("s1", 2026,
+  seedLast12Months("s1",
     ["A","A","B","A","A","A","B","A","A","B","A","A"],
     [92, 88, 78, 86, 89, 91, 74, 87, 90, 72, 88, 92]
   );
 
-  pushMonthlyHistory("s2", 2026,
+  seedLast12Months("s2",
     ["C","D","C","D","C","C","D","C","D","C","D","D"],
     [60, 50, 58, 45, 57, 55, 49, 59, 44, 56, 48, 46]
   );
 
-  pushMonthlyHistory("s3", 2026,
+  seedLast12Months("s3",
     ["B","B","B","A","A","A","B","B","A","A","B","A"],
     [75, 73, 71, 86, 88, 85, 74, 76, 87, 89, 72, 90]
   );
 
-  pushMonthlyHistory("s4", 2026,
+  seedLast12Months("s4",
     ["B","B","A","A","B","B","B","A","B","B","A","A"],
     [72, 70, 85, 86, 74, 73, 71, 87, 75, 72, 88, 89]
   );
 
-  pushMonthlyHistory("s5", 2026,
+  seedLast12Months("s5",
     ["B","C","B","C","C","B","C","C","B","C","C","B"],
     [74, 55, 73, 56, 58, 72, 54, 57, 71, 55, 59, 70]
   );
 
-  // Guarantee: expiry alerts show something (latest entry expires within 30 days)
-  // We do this by appending a "recent" inspection whose expiry is soon.
-  const todayStr = new Date().toISOString().slice(0, 10);
-  const conductedNear = addDaysToDate(todayStr, -170); // expiry in 10 days
-  stalls.find(s => s.id === "s1").gradeHistory.push({
-    date: conductedNear,
-    grade: "A",
-    score: 90,
-    expiryDate: addDaysToDate(conductedNear, 180)
-  });
+  // Force Clemens latest expiry to be within 14 days so renewal alert shows
+  const today = new Date();
+  const soonExpiry = addDaysToDate(today.toISOString().slice(0, 10), 14);
+  const clemens = stalls.find((s) => s.id === "s1");
+  if (clemens && clemens.gradeHistory.length) {
+    clemens.gradeHistory[clemens.gradeHistory.length - 1].expiryDate = soonExpiry;
+  }
 
-  // Inspections: create a few that align with history (enough for KPIs/offenders)
-  const inspections = [
-    { id: "insp_seed_ck_1", stallId: "s1", officerId: "nea1", scheduledDate: "2026-01-13", conductedDate: "2026-01-15", score: 92, grade: "A", remarks: "Good hygiene practices observed." },
-    { id: "insp_seed_ck_7", stallId: "s1", officerId: "nea1", scheduledDate: "2026-07-13", conductedDate: "2026-07-15", score: 74, grade: "B", remarks: "Minor issues found, corrected on-site." },
-
-    { id: "insp_seed_ic_2", stallId: "s2", officerId: "nea1", scheduledDate: "2026-02-13", conductedDate: "2026-02-15", score: 50, grade: "D", remarks: "Critical storage issue found." },
-    { id: "insp_seed_ic_7", stallId: "s2", officerId: "nea1", scheduledDate: "2026-07-13", conductedDate: "2026-07-15", score: 49, grade: "D", remarks: "Repeated issues, warning issued." },
-    { id: "insp_seed_ic_9", stallId: "s2", officerId: "nea1", scheduledDate: "2026-09-13", conductedDate: "2026-09-15", score: 44, grade: "D", remarks: "Pest sighting reported, urgent action required." },
-
-    // recent (for expiry soon)
-    { id: "insp_seed_recent", stallId: "s1", officerId: "nea1", scheduledDate: null, conductedDate: conductedNear, score: 90, grade: "A", remarks: "Recent check (demo for expiry alert)." },
-  ];
-
+  // -----------------------------
+  // Regulatory seed: violations + penalties
+  // -----------------------------
   const violationCatalog = [
-    { code: "V001", title: "Unclean preparation area", severityDefault: "MAJOR" },
-    { code: "V002", title: "Improper food storage", severityDefault: "CRITICAL" },
-    { code: "V003", title: "Pest sighting", severityDefault: "CRITICAL" },
-    { code: "V004", title: "Staff hygiene issue", severityDefault: "MINOR" },
+  { code: "V001", title: "Unclean preparation area", severityDefault: "MAJOR" },
+  { code: "V002", title: "Improper food storage", severityDefault: "CRITICAL" },
+  { code: "V003", title: "Pest sighting", severityDefault: "CRITICAL" },
+  { code: "V004", title: "Staff hygiene issue", severityDefault: "MINOR" },
+  { code: "V005", title: "Expired ingredients found", severityDefault: "CRITICAL" },
+  { code: "V006", title: "Cross-contamination risk", severityDefault: "MAJOR" },
+  { code: "V007", title: "Improper waste disposal", severityDefault: "MAJOR" },
+  { code: "V008", title: "Equipment not cleaned / maintained", severityDefault: "MAJOR" },
+  { code: "V009", title: "Food left uncovered", severityDefault: "MINOR" },
+  { code: "V010", title: "Handwashing station not available", severityDefault: "CRITICAL" },
+  { code: "V012", title: "Missing staff protective gear", severityDefault: "MINOR" },
+  { code: "V013", title: "Dirty floor / drainage", severityDefault: "MINOR" },
+  { code: "V014", title: "Unlabelled food containers", severityDefault: "MINOR" },
+];
+
+
+  // Create inspections that match the latest gradeHistory date so table violations can display
+  const indianLatestDate = stalls.find(s => s.id === "s2").gradeHistory.slice(-1)[0].date;
+  const clemensLatestDate = stalls.find(s => s.id === "s1").gradeHistory.slice(-1)[0].date;
+
+  const inspections = [
+    { id: "insp_seed_ic_latest", stallId: "s2", officerId: "nea1", scheduledDate: null, conductedDate: indianLatestDate, score: 46, grade: "D", remarks: "Repeated hygiene issues." },
+    { id: "insp_seed_ck_latest", stallId: "s1", officerId: "nea1", scheduledDate: null, conductedDate: clemensLatestDate, score: 92, grade: "A", remarks: "Good hygiene practices observed." },
   ];
 
   const inspectionViolations = [
-    { id: "vio_ic_2_v002", inspectionId: "insp_seed_ic_2", code: "V002", title: "Improper food storage", severity: "CRITICAL", notes: "" },
-    { id: "vio_ic_7_v001", inspectionId: "insp_seed_ic_7", code: "V001", title: "Unclean preparation area", severity: "MAJOR", notes: "" },
-    { id: "vio_ic_9_v003", inspectionId: "insp_seed_ic_9", code: "V003", title: "Pest sighting", severity: "CRITICAL", notes: "" },
+    { id: "vio_seed_1", inspectionId: "insp_seed_ic_latest", code: "V002", title: "Improper food storage", severity: "CRITICAL", notes: "" },
+    { id: "vio_seed_2", inspectionId: "insp_seed_ic_latest", code: "V001", title: "Unclean preparation area", severity: "MAJOR", notes: "" },
   ];
 
   const penalties = [
-    { id: "pen_ic_2_warn", stallId: "s2", inspectionId: "insp_seed_ic_2", action: "WARNING", createdDateTime: "2026-02-15T10:00:00.000Z" },
-    { id: "pen_ic_2_rein", stallId: "s2", inspectionId: "insp_seed_ic_2", action: "REINSPECTION", createdDateTime: "2026-02-15T10:00:00.000Z" },
-
-    { id: "pen_ic_7_warn", stallId: "s2", inspectionId: "insp_seed_ic_7", action: "WARNING", createdDateTime: "2026-07-15T10:00:00.000Z" },
-    { id: "pen_ic_9_rein", stallId: "s2", inspectionId: "insp_seed_ic_9", action: "REINSPECTION", createdDateTime: "2026-09-15T10:00:00.000Z" },
+    { id: "pen_seed_1", stallId: "s2", inspectionId: "insp_seed_ic_latest", action: "WARNING", createdDateTime: new Date().toISOString() },
+    { id: "pen_seed_2", stallId: "s2", inspectionId: "insp_seed_ic_latest", action: "REINSPECTION", createdDateTime: new Date().toISOString() },
   ];
 
   // -----------------------------
@@ -355,27 +361,21 @@ function createSeedDB() {
     violationCatalog,
   };
 }
+
 // =========================================================
 // COMPATIBILITY LAYER (for teammate code that uses DB.*)
-// Paste this at the VERY BOTTOM of db.js
 // =========================================================
-
 (function () {
-  // map new order statuses -> teammate statuses
   function mapStatusToTeammate(status) {
     const s = String(status || "").toUpperCase();
     if (s === "COMPLETED") return "Collected";
     if (s === "CANCELLED") return "cancelled";
-    return "active"; // PLACED / PREPARING / READY -> active
+    return "active"; // PLACED / others -> active
   }
 
   function getStallNameById(db, stallId) {
     const s = (db.stalls || []).find((x) => x.id === stallId);
     return s ? s.name : "Unknown Stall";
-  }
-
-  function getMenuItemById(db, id) {
-    return (db.menuItems || []).find((m) => String(m.id) === String(id));
   }
 
   function getOrderItemsByOrderId(db, orderId) {
@@ -386,7 +386,14 @@ function createSeedDB() {
     return (db.payments || []).find((p) => p.orderId === orderId);
   }
 
-  // Expose DB API expected by teammate
+  function cuisinesForMenuItem(db, menuItemId) {
+    const links = (db.menuItemCuisines || []).filter((x) => x.menuItemId === menuItemId);
+    return links
+      .map((l) => (db.cuisines || []).find((c) => c.id === l.cuisineId))
+      .filter(Boolean)
+      .map((c) => c.name);
+  }
+
   window.DB = {
     // ---------- Menu ----------
     getMenuItems() {
@@ -394,8 +401,8 @@ function createSeedDB() {
       return (db.menuItems || []).map((m) => ({
         id: m.id,
         name: m.name,
-        cuisines: m.cuisines || [],
-        price: m.price
+        cuisines: cuisinesForMenuItem(db, m.id),
+        price: m.price,
       }));
     },
 
@@ -403,18 +410,32 @@ function createSeedDB() {
       const db = loadDB();
       const m = (db.menuItems || []).find((x) => String(x.id) === String(id));
       if (!m) return null;
-      return { id: m.id, name: m.name, cuisines: m.cuisines || [], price: m.price };
+      return { id: m.id, name: m.name, cuisines: cuisinesForMenuItem(db, m.id), price: m.price };
     },
 
     addMenuItem({ name, cuisines, price }) {
       const db = loadDB();
-      const nextId =
-        (db.menuItems || []).reduce((max, x) => Math.max(max, Number(x.id) || 0), 0) + 1;
+      const newId = "m" + (db.menuItems.length + 1);
 
-      db.menuItems = db.menuItems || [];
-      db.menuItems.push({ id: nextId, name, cuisines, price: Number(price) });
+      db.menuItems.push({
+        id: newId,
+        stallId: "s1", // keep simple
+        name,
+        description: "",
+        price: Number(price),
+        isAvailable: true,
+        imageUrl: "",
+      });
+
+      // link cuisines
+      db.menuItemCuisines = db.menuItemCuisines || [];
+      (cuisines || []).forEach((cName) => {
+        const c = (db.cuisines || []).find((x) => x.name === cName);
+        if (c) db.menuItemCuisines.push({ menuItemId: newId, cuisineId: c.id });
+      });
+
       saveDB(db);
-      return nextId;
+      return newId;
     },
 
     updateMenuItem(id, { name, cuisines, price }) {
@@ -423,8 +444,15 @@ function createSeedDB() {
       if (!m) return false;
 
       m.name = name;
-      m.cuisines = cuisines;
       m.price = Number(price);
+
+      // reset cuisine links
+      db.menuItemCuisines = (db.menuItemCuisines || []).filter((x) => x.menuItemId !== m.id);
+      (cuisines || []).forEach((cName) => {
+        const c = (db.cuisines || []).find((x) => x.name === cName);
+        if (c) db.menuItemCuisines.push({ menuItemId: m.id, cuisineId: c.id });
+      });
+
       saveDB(db);
       return true;
     },
@@ -432,13 +460,13 @@ function createSeedDB() {
     deleteMenuItem(id) {
       const db = loadDB();
       db.menuItems = (db.menuItems || []).filter((x) => String(x.id) !== String(id));
+      db.menuItemCuisines = (db.menuItemCuisines || []).filter((x) => String(x.menuItemId) !== String(id));
       saveDB(db);
       return true;
     },
 
     // ---------- Rental ----------
     makeRentalId() {
-      // similar format to your existing IDs, but always unique-ish
       return "R" + String(Math.floor(10000 + Math.random() * 90000));
     },
 
@@ -476,21 +504,16 @@ function createSeedDB() {
       return true;
     },
 
-    // ---------- Orders (convert your new structure -> teammate structure) ----------
+    // ---------- Orders (convert your structure -> teammate structure) ----------
     getOrders() {
       const db = loadDB();
-      const orders = db.orders || [];
-
       const out = [];
 
-      for (const o of orders) {
+      for (const o of db.orders || []) {
         const stallName = getStallNameById(db, o.stallId);
-
         const ois = getOrderItemsByOrderId(db, o.id);
-        // teammate UI expects 1 item per order card; take first item
         const firstOI = ois[0];
-
-        const mi = firstOI ? getMenuItemById(db, firstOI.menuItemId) : null;
+        const mi = firstOI ? (db.menuItems || []).find((m) => m.id === firstOI.menuItemId) : null;
         const pay = getPaymentByOrderId(db, o.id);
 
         const orderNumber = String(o.id || "").replace(/^o/, "") || "-";
@@ -507,12 +530,11 @@ function createSeedDB() {
           date: o.createdDateTime,
           customerName: (o.customerIdOrGuestId || "").replace(/^guest_/, "") || "Customer",
           orderNumber: orderNumber,
-          paymentMethod: pay ? pay.method : "-"
+          paymentMethod: pay ? pay.method : "-",
         });
       }
 
       return out;
-    }
+    },
   };
 })();
-

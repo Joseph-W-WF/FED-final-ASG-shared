@@ -15,6 +15,7 @@
     </div>
 
     <nav class="nav">
+      <a class="nav-item" href="schedule.html"><span class="nav-icon">🗓️</span><span>Schedule Inspection</span></a>
       <a class="nav-item active" href="inspection.html"><span class="nav-icon">🧾</span><span>Log Inspection</span></a>
       <a class="nav-item" href="dashboard.html"><span class="nav-icon">📊</span><span>Dashboard</span></a>
       <a class="nav-item" href="stall.html"><span class="nav-icon">🏪</span><span>Stalls</span></a>
@@ -40,7 +41,7 @@
     <main class="main">
       <div class="grid">
         <div class="card">
-          <h2 style="margin:0 0 6px 0;">New Inspection</h2>
+          <h2 style="margin-top:0;">New Inspection</h2>
           <p class="small" style="margin-top:0;">Record inspection results and violations.</p>
 
           <label>Stall</label>
@@ -58,25 +59,25 @@
           <label>Remarks</label>
           <textarea id="remarks"></textarea>
 
-          <button id="saveBtn" style="margin-top:14px;">Save Inspection</button>
-          <p id="msg" class="small"></p>
-        </div>
+          <hr style="margin:18px 0; border:0; border-top:1px solid #eee;">
 
-        <div class="card">
-          <h2 style="margin:0 0 6px 0;">Violations</h2>
-          <p class="small" style="margin-top:0;">Add violation codes and severity.</p>
+          <!-- MOVED HERE: Violations -->
+          <h2 style="margin:0;">Violations</h2>
+          <p class="small" style="margin-top:6px;">Add violation codes and severity (saved with this inspection).</p>
 
           <label>Add Violation</label>
           <div style="display:flex; gap:10px; align-items:center;">
             <select id="violationSelect" style="flex:1;"></select>
-            <button id="addViolationBtn" type="button">Add</button>
+            <button id="addViolationBtn" class="btn-primary" type="button">Add</button>
           </div>
 
-          <div id="violationList" style="margin-top:10px;"></div>
+          <div id="violationsList" class="small" style="margin-top:10px;"></div>
+          <p class="small" style="margin-top:10px;">Penalties are auto-generated based on grade and critical violations.</p>
 
-          <p class="small" style="margin-top:12px;">
-            Penalties are auto-generated based on grade and critical violations.
-          </p>
+          <div style="margin-top:18px; display:flex; gap:12px; align-items:center;">
+            <button id="saveBtn" class="btn-primary">Save Inspection</button>
+            <span id="msg" class="small"></span>
+          </div>
         </div>
       </div>
     </main>
@@ -89,10 +90,8 @@
   document.getElementById("todayText").textContent = d.toLocaleDateString(undefined, opts);
 </script>
 
-<!-- IMPORTANT: db.js is in ROOT of project -->
 <script src="../../db.js"></script>
 <script src="../js/neaGuard.js"></script>
 <script src="../js/inspection.js"></script>
 </body>
 </html>
-

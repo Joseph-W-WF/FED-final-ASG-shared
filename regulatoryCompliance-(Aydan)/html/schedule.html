@@ -1,0 +1,71 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <link rel="stylesheet" href="../css/styles.css">
+  <title>Schedule Inspection</title>
+</head>
+<body>
+
+<div class="layout">
+  <aside class="sidebar">
+    <div class="sidebar-top">
+      <div class="brand-title">FED Hawker</div>
+      <div class="brand-subtitle">NEA Portal</div>
+    </div>
+
+    <nav class="nav">
+      <a class="nav-item" href="schedule.html"><span class="nav-icon">🗓️</span><span>Schedule Inspection</span></a>
+      <a class="nav-item" href="inspection.html"><span class="nav-icon">🧾</span><span>Log Inspection</span></a>
+      <a class="nav-item" href="dashboard.html"><span class="nav-icon">📊</span><span>Dashboard</span></a>
+      <a class="nav-item" href="stall.html"><span class="nav-icon">🏪</span><span>Stalls</span></a>
+    </nav>
+
+    <div class="sidebar-bottom">
+      <div class="user-card">
+        <div class="avatar">N</div>
+        <div>
+          <div class="user-name">NEA Officer</div>
+          <div class="user-sub">nea1</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <div class="content">
+    <header class="topbar">
+      <h1 class="page-title">Schedule Inspection</h1>
+      <div class="topbar-right" id="todayText"></div>
+    </header>
+
+    <main class="main">
+      <div class="grid" style="grid-template-columns: 1fr;">
+        <div class="card">
+          <h2 style="margin-top:0;">New Schedule</h2>
+          <p class="small" style="margin-top:0;">Create an upcoming inspection schedule (no grade yet).</p>
+
+          <label>Stall</label>
+          <select id="stallSelect"></select>
+
+          <label style="margin-top:12px;">Scheduled Date</label>
+          <input id="scheduledDate" type="date" />
+
+          <button id="scheduleBtn" style="margin-top:14px;">Schedule</button>
+          <p id="msg" class="small"></p>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script>
+  var d = new Date();
+  var opts = { weekday:'long', day:'numeric', month:'long', year:'numeric' };
+  document.getElementById("todayText").textContent = d.toLocaleDateString(undefined, opts);
+</script>
+
+<script src="../../db.js"></script>
+<script src="../js/neaGuard.js"></script>
+<script src="../js/schedule.js"></script>
+</body>
+</html>

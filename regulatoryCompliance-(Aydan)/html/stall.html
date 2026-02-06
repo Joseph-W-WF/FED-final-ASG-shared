@@ -3,28 +3,94 @@
 <head>
   <meta charset="utf-8" />
   <link rel="stylesheet" href="../css/styles.css">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <title>Stalls</title>
+
+  <!-- Chart.js (CDN) -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
 
-<div class="navbar">
-  <div class="nav-left">
-    <span class="brand">NEA Portal</span>
-    <a href="nea.html">Dashboard</a>
-    <a href="inspection.html">Inspections</a>
-    <a href="stall.html">Stalls</a>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="sidebar-top">
+      <div class="brand-title">FED Hawker</div>
+      <div class="brand-subtitle">NEA Portal</div>
+    </div>
+
+    <nav class="nav">
+      <a class="nav-item" href="schedule.html"><span class="nav-icon">🗓️</span><span>Schedule Inspection</span></a>
+      <a class="nav-item" href="inspection.html"><span class="nav-icon">🧾</span><span>Log Inspection</span></a>
+      <a class="nav-item" href="dashboard.html"><span class="nav-icon">📊</span><span>Dashboard</span></a>
+      <a class="nav-item active" href="stall.html"><span class="nav-icon">🏪</span><span>Stalls</span></a>
+    </nav>
+
+    <div class="sidebar-bottom">
+      <div class="user-card">
+        <div class="avatar">N</div>
+        <div>
+          <div class="user-name">NEA Officer</div>
+          <div class="user-sub">nea1</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <div class="content">
+    <header class="topbar">
+      <h1 class="page-title">Stalls</h1>
+      <div class="topbar-right" id="todayText"></div>
+    </header>
+
+    <main class="main">
+      <div class="grid">
+        <!-- LEFT: Charts -->
+        <div class="card">
+          <h2 style="margin-top:0;">Hygiene Grade Trends (Monthly)</h2>
+          <p class="small" style="margin-top:0;">X-axis shows months. Latest inspection for each month is plotted.</p>
+
+          <label>Select Stall</label>
+          <select id="stallSelect"></select>
+
+          <div style="margin-top:14px;">
+            <!-- IMPORTANT: stall.js expects id="gradeChart" -->
+            <canvas id="gradeChart" height="120"></canvas>
+          </div>
+
+          <hr style="margin:18px 0; border:0; border-top:1px solid #eee;">
+
+          <h2 style="margin:0;">Inspection Scores (Monthly)</h2>
+          <p class="small" style="margin-top:6px;">Scores are out of 100. Latest inspection for each month is plotted.</p>
+
+          <div style="margin-top:14px;">
+            <!-- IMPORTANT: stall.js expects id="scoreChart" -->
+            <canvas id="scoreChart" height="120"></canvas>
+          </div>
+        </div>
+
+        <!-- RIGHT: Table -->
+        <div class="card">
+          <h2 style="margin-top:0;">Historical Grades (Transparency)</h2>
+          <div id="historyTable" class="small"></div>
+        </div>
+      </div>
+    </main>
   </div>
 </div>
 
-<div class="container">
-  <label>Stall</label>
-  <select id="stallSelect"></select>
-  <canvas id="chart"></canvas>
-</div>
+<script>
+  var d = new Date();
+  var opts = { weekday:'long', day:'numeric', month:'long', year:'numeric' };
+  document.getElementById("todayText").textContent = d.toLocaleDateString(undefined, opts);
+</script>
 
 <script src="../../db.js"></script>
 <script src="../js/neaGuard.js"></script>
+
+<script type="module" src="../../firebase.js"></script>
+<script type="module" src="../../firestore-service.js"></script>
+<script type="module" src="../../db-compat.js"></script>
+
 <script src="../js/stall.js"></script>
+
 </body>
 </html>

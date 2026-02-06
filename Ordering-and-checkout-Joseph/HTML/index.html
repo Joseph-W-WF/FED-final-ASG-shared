@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>FED Hawker — Customer</title>
+  <link rel="stylesheet" href="../CSS/style.css"/>
+</head>
+
+<body>
+  <!-- Top Sticky Nav -->
+  <header class="topbar">
+    <div class="topbar__inner">
+      <div class="brand" role="banner">
+        <div class="brand__title">FED Hawker</div>
+        <div class="brand__subtitle" id="brandSubtitle">Customer</div>
+      </div>
+
+      <nav class="nav" aria-label="Customer navigation">
+        <button class="nav__link is-active" data-route="browse" type="button">Browse stalls</button>
+        <button class="nav__link" data-route="cart" type="button">
+          Cart
+          <span class="badge" id="cartBadge" aria-label="Items in cart">0</span>
+        </button>
+        <button class="nav__link" data-route="orders" type="button">Orders</button>
+      </nav>
+
+      <div class="profile">
+        <button class="profile__btn" id="profileBtn" type="button" aria-haspopup="menu" aria-expanded="false">
+          <div class="avatar" id="avatarText">J</div>
+          <div class="profile__text">
+            <div class="profile__name" id="profileName">Joseph</div>
+          </div>
+          <svg class="chev" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M7 10l5 5 5-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </button>
+
+        <div class="dropdown" id="profileDropdown" role="menu" aria-label="Profile menu">
+          <button class="dropdown__item" type="button" data-route="profile" role="menuitem">Profile</button>
+          <button class="dropdown__item" type="button" id="logoutBtn" role="menuitem">Logout</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="container" id="app">
+
+    <!-- BROWSE -->
+    <section class="page is-active" id="page-browse" aria-label="Browse stalls">
+  <div class="page__header">
+    <h1>Browse Stalls</h1>
+    <p class="muted">Pick a stall to view its menu.</p>
+  </div>
+
+  <div class="panel">
+    <div class="panel__head">
+      <h2 class="panel__title">Stalls</h2>
+    </div>
+    <div class="searchRow">
+      <input id="stallSearch" class="input" placeholder="Search stalls..." aria-label="Search stalls"/>
+    </div>
+    <div id="stallList" class="stallGrid" aria-live="polite"></div>
+  </div>
+</section>
+    
+    <!-- MENU (opens after selecting a stall) -->
+ <section class="page" id="page-menu" aria-label="Menu">
+  <div class="page__header page__header--row">
+    <div>
+      <h1 id="menuPageTitle">Menu</h1>
+      <p class="muted" id="menuPageSub">Select items and add to cart.</p>
+    </div>
+    <button class="btn" type="button" id="backToStallsBtn">← Back to stalls</button>
+  </div>
+
+  <div class="panel">
+    <div class="panel__head">
+      <h2 class="panel__title" id="menuTitle">Menu</h2>
+      <select class="select" id="menuSort" aria-label="Sort menu">
+        <option value="popular">Recommended</option>
+        <option value="priceAsc">Price (Low → High)</option>
+        <option value="priceDesc">Price (High → Low)</option>
+        <option value="nameAsc">Name (A → Z)</option>
+      </select>
+    </div>
+
+    <div class="searchRow">
+      <input id="menuSearch" class="input" placeholder="Search menu items..." aria-label="Search menu items"/>
+    </div>
+
+    <div id="menuList" class="menuList" aria-live="polite"></div>
+  </div>
+</section>
+
+
+    <!-- CART -->
+    <section class="page" id="page-cart" aria-label="Cart">
+      <div class="page__header">
+        <h1>Cart</h1>
+        <p class="muted">Multi-vendor cart: each vendor becomes a separate checkout.</p>
+      </div>
+
+      <div id="cartEmpty" class="emptyState is-hidden">
+        <div class="emptyState__icon">🛒</div>
+        <div class="emptyState__title">Your cart is empty</div>
+        <div class="emptyState__text">Go to Browse stalls and add something tasty.</div>
+        <button class="btn btn--primary" type="button" data-route="browse">Browse stalls</button>
+      </div>
+
+      <div id="cartWrap" class="stack"></div>
+    </section>
+
+    <!-- CHECKOUT -->
+    <section class="page" id="page-checkout" aria-label="Checkout">
+      <div class="page__header">
+        <h1>Checkout</h1>
+        <p class="muted" id="checkoutSubtitle">Pay and create an order. Payment is simulated (UI-only).</p>
+      </div>
+
+      <div class="grid grid--2">
+        <div class="panel">
+          <div class="panel__head">
+            <h2 class="panel__title">Payment method</h2>
+          </div>
+
+          <div class="payMethods" role="radiogroup" aria-label="Payment methods">
+            <label class="payCard">
+              <input type="radio" name="payMethod" value="Cash" checked />
+              <div>
+                <div class="payCard__title">Cash</div>
+                <div class="payCard__sub">Pay at stall counter</div>
+              </div>
+            </label>
+
+            <label class="payCard">
+              <input type="radio" name="payMethod" value="Card" />
+              <div>
+                <div class="payCard__title">Credit / Debit Card</div>
+                <div class="payCard__sub">Simulated payment</div>
+              </div>
+            </label>
+
+            <label class="payCard">
+              <input type="radio" name="payMethod" value="E-Wallet" />
+              <div>
+                <div class="payCard__title">E-Wallet</div>
+                <div class="payCard__sub">PayNow / GrabPay (simulated)</div>
+              </div>
+            </label>
+          </div>
+
+          <details class="testMode">
+            <summary>Testing options (for demo)</summary>
+            <label class="checkboxRow">
+              <input type="checkbox" id="forceFail" />
+              Force payment failure
+            </label>
+          </details>
+
+          <div class="actions">
+            <button class="btn" type="button" id="checkoutCancelBtn">Cancel</button>
+            <button class="btn btn--primary" type="button" id="payNowBtn">Pay Now</button>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel__head">
+            <h2 class="panel__title">Order summary</h2>
+          </div>
+          <div id="checkoutSummary" class="summary"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ORDERS -->
+    <section class="page" id="page-orders" aria-label="Order history">
+      <div class="page__header">
+        <h1>My Orders</h1>
+        <p class="muted">View and manage your order history</p>
+      </div>
+
+      <div class="tabs" role="tablist" aria-label="Order status tabs">
+        <button class="tab is-active" type="button" data-tab="Received" role="tab">Active Orders</button>
+        <button class="tab" type="button" data-tab="Completed" role="tab">Completed</button>
+        <button class="tab" type="button" data-tab="Failed" role="tab">Cancelled</button>
+      </div>
+
+      <div class="toolbar">
+        <input id="orderSearch" class="input" placeholder="Search orders by item name or stall..." aria-label="Search orders"/>
+        <select id="orderSort" class="select" aria-label="Sort orders">
+          <option value="newest">Newest First</option>
+          <option value="oldest">Oldest First</option>
+          <option value="totalDesc">Total (High → Low)</option>
+          <option value="totalAsc">Total (Low → High)</option>
+        </select>
+      </div>
+
+      <div class="grid grid--3">
+        <div class="statCard">
+          <div class="statCard__icon">📊</div>
+          <div class="statCard__meta">
+            <div class="statCard__label">Total Orders</div>
+            <div class="statCard__value" id="statTotalOrders">0</div>
+          </div>
+        </div>
+
+        <div class="statCard">
+          <div class="statCard__icon">💰</div>
+          <div class="statCard__meta">
+            <div class="statCard__label">Total Spent</div>
+            <div class="statCard__value" id="statTotalSpent">$0.00</div>
+          </div>
+        </div>
+
+        <div class="statCard">
+          <div class="statCard__icon">⭐</div>
+          <div class="statCard__meta">
+            <div class="statCard__label">Favorite Item</div>
+            <div class="statCard__value" id="statFavItem">-</div>
+          </div>
+        </div>
+      </div>
+
+      <div id="ordersList" class="stack"></div>
+    </section>
+
+    <!-- PROFILE -->
+    <section class="page" id="page-profile" aria-label="Profile">
+      <div class="page__header">
+        <h1>Profile</h1>
+        <p class="muted">Demo profile panel. Replace with Firebase auth later if needed.</p>
+      </div>
+
+      <div class="panel">
+        <div class="profileCard">
+          <div class="profileCard__left">
+            <div class="avatar avatar--lg" id="avatarBig">J</div>
+            <div>
+              <div class="profile__name" id="profileNameBig">Joseph</div>
+            </div>
+          </div>
+
+          <div class="profileCard__right">
+            <button class="btn" type="button" id="seedDemoBtn">Seed demo orders</button>
+            <button class="btn btn--danger" type="button" id="clearDataBtn">Clear cart + orders</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Payment overlay -->
+  <div class="overlay is-hidden" id="payOverlay" role="dialog" aria-modal="true" aria-label="Payment status">
+    <div class="overlayCard" id="overlayCard">
+      <!-- JS fills -->
+    </div>
+  </div>
+
+  <script defer src="../JS/utils.js"></script>
+  <script defer src="../JS/data.js"></script>
+  <script defer src="../JS/store.cart.js"></script>
+  <script defer src="../JS/store.orders.js"></script>
+
+  <script defer src="../JS/ui.router.js"></script>
+  <script defer src="../JS/ui.profile.js"></script>
+
+  <script defer src="../JS/pages.browse.js"></script>
+  <script defer src="../JS/pages.menu.js"></script>
+  <script defer src="../JS/pages.cart.js"></script>
+  <script defer src="../JS/pages.checkout.js"></script>
+  <script defer src="../JS/pages.orders.js"></script>
+
+  <script defer src="../JS/main.js"></script>
+
+</body>
+</html>

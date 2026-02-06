@@ -3,15 +3,15 @@
 <head>
   <meta charset="utf-8" />
   <link rel="stylesheet" href="../css/styles.css">
-  <title>Inspection</title>
+  <title>Log Inspection</title>
 </head>
 <body>
 
 <div class="navbar">
   <div class="nav-left">
     <span class="brand">NEA Portal</span>
-    <a href="nea.html">Dashboard</a>
-    <a href="inspection.html">Inspections</a>
+    <a href="inspection.html">Log Inspection</a>
+    <a href="dashboard.html">Dashboard</a>
     <a href="stall.html">Stalls</a>
   </div>
 </div>
@@ -25,8 +25,11 @@
     <label>Stall</label>
     <select id="stallSelect"></select>
 
-    <label>Date</label>
-    <input id="date" type="date" />
+    <label>Scheduled Date (optional)</label>
+    <input id="scheduledDate" type="date" />
+
+    <label>Conducted Date</label>
+    <input id="conductedDate" type="date" />
 
     <label>Score (0–100)</label>
     <input id="score" type="number" min="0" max="100" />
@@ -34,7 +37,19 @@
     <label>Remarks</label>
     <textarea id="remarks"></textarea>
 
-    <button id="saveBtn">Save Inspection</button>
+    <hr style="margin:16px 0;">
+
+    <h2 style="margin-top:0;">Violations</h2>
+
+    <label>Add Violation</label>
+    <div style="display:flex; gap:10px; align-items:center;">
+      <select id="violationSelect" style="flex:1;"></select>
+      <button id="addViolationBtn" type="button">Add</button>
+    </div>
+
+    <div id="violationList" style="margin-top:10px;"></div>
+
+    <button id="saveBtn" style="margin-top:14px;">Save Inspection</button>
     <p id="msg"></p>
   </div>
 </div>

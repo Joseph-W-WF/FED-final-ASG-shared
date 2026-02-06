@@ -162,6 +162,29 @@ button:hover{
   font-size: 14px;
 }
 
+.grid{
+  display:grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 16px;
+}
+
+.table{
+  width:100%;
+  border-collapse: collapse;
+  margin-top:10px;
+}
+
+.table th, .table td{
+  border:1px solid #e5e7eb;
+  padding:8px;
+  text-align:left;
+}
+
+.small{
+  font-size: 0.9rem;
+  color:#6b7280;
+}
+
 /* ---------- Mobile ---------- */
 @media (max-width: 600px){
   h1{ font-size: 26px; }

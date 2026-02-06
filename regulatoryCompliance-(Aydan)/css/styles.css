@@ -200,3 +200,83 @@ button:hover{ background: var(--accent-dark); }
   .avatar{ margin:auto; }
 }
 
+/* ---------- Dashboard / Trends UI upgrades ---------- */
+
+.controls{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  align-items:center;
+}
+.controls select{
+  max-width: 280px;
+}
+.kpi-row{
+  display:grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+  margin-bottom: 16px;
+}
+.kpi{
+  background: linear-gradient(180deg, #ffffff 0%, #fbfbff 100%);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 16px;
+}
+.kpi-title{
+  color: var(--muted);
+  font-weight: 800;
+  font-size: 13px;
+  margin: 0;
+}
+.kpi-value{
+  font-size: 26px;
+  font-weight: 900;
+  margin: 8px 0 0 0;
+}
+.kpi-sub{
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+/* Charts */
+.chart{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  margin-top: 6px;
+}
+.chart-row{
+  display:grid;
+  grid-template-columns: 110px 1fr;
+  gap: 12px;
+  align-items:center;
+}
+.chart-label{
+  font-size: 13px;
+  color: #374151;
+}
+.chart-track{
+  position: relative;
+  height: 26px;
+  background: #f1f5f9;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  overflow:hidden;
+}
+.chart-fill{
+  height: 100%;
+  background: #2563eb;
+  border-radius: 10px;
+}
+.chart-value{
+  position:absolute;
+  right:10px;
+  top:50%;
+  transform: translateY(-50%);
+  font-size: 12px;
+  font-weight: 800;
+  color: #111827;
+}

@@ -42,18 +42,26 @@
 
     <main class="main">
       <div class="grid">
+        <!-- LEFT: Charts -->
         <div class="card">
-          <h2 style="margin-top:0;">Hygiene Grade Trends (Monthly)</h2>
-          <p class="small" style="margin-top:0;">X-axis shows months. Latest grade for each month is plotted.</p>
+          <h2 style="margin-top:0;">Hygiene Trends (Monthly)</h2>
+          <p class="small" style="margin-top:0;">X-axis shows the last 12 months. Latest result per month is plotted.</p>
 
           <label>Select Stall</label>
           <select id="stallSelect"></select>
 
           <div style="margin-top:14px;">
-            <canvas id="chart" height="120"></canvas>
+            <h3 style="margin: 0 0 8px 0;">Grade Trend</h3>
+            <canvas id="gradeChart" height="120"></canvas>
+          </div>
+
+          <div style="margin-top:18px;">
+            <h3 style="margin: 0 0 8px 0;">Inspection Score Trend (0–100)</h3>
+            <canvas id="scoreChart" height="120"></canvas>
           </div>
         </div>
 
+        <!-- RIGHT: History table -->
         <div class="card">
           <h2 style="margin-top:0;">Historical Grades (Transparency)</h2>
           <div id="historyTable" class="small"></div>

@@ -36,8 +36,33 @@
       <h1 class="page-title">Dashboard</h1>
       <div class="topbar-right" id="todayText"></div>
     </header>
+      <main class="main">
+      <div class="kpi-row">
+        <div class="kpi">
+          <p class="kpi-title">Total Inspections</p>
+          <div class="kpi-value" id="kpiInspections">0</div>
+          <div class="kpi-sub">All recorded inspections</div>
+        </div>
 
-    <main class="main">
+        <div class="kpi">
+          <p class="kpi-title">Average Score</p>
+          <div class="kpi-value" id="kpiAvgScore">-</div>
+          <div class="kpi-sub">Based on all inspections</div>
+        </div>
+
+        <div class="kpi">
+          <p class="kpi-title">Grades Expiring Soon</p>
+          <div class="kpi-value" id="kpiExpiring">0</div>
+          <div class="kpi-sub">Within next 30 days</div>
+        </div>
+
+        <div class="kpi">
+          <p class="kpi-title">Penalties Issued</p>
+          <div class="kpi-value" id="kpiPenalties">0</div>
+          <div class="kpi-sub">All penalties recorded</div>
+        </div>
+      </div>
+
       <div class="grid">
         <div class="card">
           <h2 style="margin-top:0;">Inspection Priority Queue</h2>

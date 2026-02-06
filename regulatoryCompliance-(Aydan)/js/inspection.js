@@ -1,82 +1,213 @@
-// js/inspection.js
 requireNEA();
 
 var db = loadDB();
 
 var stallSelect = document.getElementById("stallSelect");
+var scheduledDateInput = document.getElementById("scheduledDate");
+var conductedDateInput = document.getElementById("conductedDate");
+var scoreInput = document.getElementById("score");
+var remarksInput = document.getElementById("remarks");
+
+var violationSelect = document.getElementById("violationSelect");
+var addViolationBtn = document.getElementById("addViolationBtn");
+var violationListDiv = document.getElementById("violationList");
+
+var saveBtn = document.getElementById("saveBtn");
 var msg = document.getElementById("msg");
 
-// SAFETY CHECK
-if (!db || !db.stalls) {
-  msg.textContent = "Error: Database not loaded (db.js path issue).";
-} else if (db.stalls.length === 0) {
-  msg.textContent = "No stalls found in database. Try resetting DB.";
-} else {
-  // Fill dropdown
-  for (var i = 0; i < db.stalls.length; i++) {
-    var opt = document.createElement("option");
-    opt.value = db.stalls[i].id;
-    opt.textContent = db.stalls[i].name;
-    stallSelect.appendChild(opt);
-  }
+var selectedViolations = []; // [{code,title,severity}]
+
+// ---- setup stall dropdown ----
+for (var i = 0; i < db.stalls.length; i++) {
+  var o = document.createElement("option");
+  o.value = db.stalls[i].id;
+  o.textContent = db.stalls[i].name;
+  stallSelect.appendChild(o);
 }
 
-document.getElementById("saveBtn").addEventListener("click", function () {
+// ---- setup default dates ----
+var today = new Date().toISOString().slice(0, 10);
+conductedDateInput.value = today;
+
+// ---- setup violation dropdown ----
+if (!db.violationCatalog) db.violationCatalog = [];
+for (var j = 0; j < db.violationCatalog.length; j++) {
+  var v = db.violationCatalog[j];
+  var opt = document.createElement("option"); // FIXED
+  opt.value = v.code;
+  opt.textContent = v.code + " - " + v.title + " (" + v.severityDefault + ")";
+  violationSelect.appendChild(opt);
+}
+
+addViolationBtn.addEventListener("click", function () {
+  var code = violationSelect.value;
+  var v = findViolationFromCatalog(code);
+  if (!v) return;
+
+  // prevent duplicates
+  for (var i = 0; i < selectedViolations.length; i++) {
+    if (selectedViolations[i].code === code) {
+      alert("This violation is already added.");
+      return;
+    }
+  }
+
+  selectedViolations.push({ code: v.code, title: v.title, severity: v.severityDefault });
+  renderViolations();
+});
+
+function renderViolations() {
+  if (selectedViolations.length === 0) {
+    violationListDiv.innerHTML = "<p class='small'>No violations added.</p>";
+    return;
+  }
+
+  var html = "<table class='table'><thead><tr>" +
+    "<th>Code</th><th>Title</th><th>Severity</th><th>Remove</th>" +
+    "</tr></thead><tbody>";
+
+  for (var i = 0; i < selectedViolations.length; i++) {
+    var v = selectedViolations[i];
+    html += "<tr>" +
+      "<td>" + v.code + "</td>" +
+      "<td>" + v.title + "</td>" +
+      "<td>" + v.severity + "</td>" +
+      "<td><button type='button' onclick='removeViolation(\"" + v.code + "\")'>Remove</button></td>" +
+      "</tr>";
+  }
+
+  html += "</tbody></table>";
+  violationListDiv.innerHTML = html;
+}
+
+window.removeViolation = function (code) {
+  var next = [];
+  for (var i = 0; i < selectedViolations.length; i++) {
+    if (selectedViolations[i].code !== code) next.push(selectedViolations[i]);
+  }
+  selectedViolations = next;
+  renderViolations();
+};
+
+renderViolations();
+
+// ---- save inspection ----
+saveBtn.addEventListener("click", function () {
   msg.textContent = "";
 
   var stallId = stallSelect.value;
-  var date = document.getElementById("date").value;
-  var scoreStr = document.getElementById("score").value;
-  var score = Number(scoreStr);
-  var remarks = document.getElementById("remarks").value;
+  var scheduledDate = scheduledDateInput.value || null;
+  var conductedDate = conductedDateInput.value;
+  var score = Number(scoreInput.value);
+  var remarks = remarksInput.value;
 
-  if (!stallId) {
-    msg.textContent = "Please select a stall.";
+  if (!stallId || !conductedDate || isNaN(score)) {
+    msg.textContent = "Please fill in Stall, Conducted Date, and Score.";
     return;
   }
-  if (!date) {
-    msg.textContent = "Please select a date.";
-    return;
-  }
-  if (scoreStr === "" || isNaN(score)) {
-    msg.textContent = "Please enter a valid score.";
+  if (score < 0 || score > 100) {
+    msg.textContent = "Score must be between 0 and 100.";
     return;
   }
 
+  // compute grade
   var grade = scoreToGrade(score);
-  var expiry = addDaysToDate(date, 90);
 
-  // Save inspection record
+  if (!db.inspections) db.inspections = [];
+  if (!db.inspectionViolations) db.inspectionViolations = [];
+  if (!db.penalties) db.penalties = [];
+
+  var inspectionId = makeId("insp");
+
   db.inspections.push({
-    id: makeId("insp"),
+    id: inspectionId,
     stallId: stallId,
-    conductedDate: date,
+    officerId: "nea1",
+    scheduledDate: scheduledDate,
+    conductedDate: conductedDate,
     score: score,
     grade: grade,
     remarks: remarks
   });
 
-  // Update grade history for that stall (no .find / arrow functions)
-  var stall = null;
-  for (var i = 0; i < db.stalls.length; i++) {
-    if (db.stalls[i].id === stallId) {
-      stall = db.stalls[i];
-      break;
-    }
+  // save violations linked to this inspection
+  for (var i = 0; i < selectedViolations.length; i++) {
+    var v = selectedViolations[i];
+    db.inspectionViolations.push({
+      id: makeId("vio"),
+      inspectionId: inspectionId,
+      code: v.code,
+      title: v.title,
+      severity: v.severity,
+      notes: ""
+    });
   }
 
-  if (stall === null) {
-    msg.textContent = "Error: Stall not found in DB.";
-    return;
-  }
+  // update stall grade history (for transparency + trends)
+  var stall = findStallById(stallId);
+  if (!stall.gradeHistory) stall.gradeHistory = [];
+
+  // grade expiry: 180 days after conducted date
+  var expiryDate = addDaysToDate(conductedDate, 180);
 
   stall.gradeHistory.push({
+    date: conductedDate,
     grade: grade,
-    date: date,
-    expiryDate: expiry
+    score: score,
+    expiryDate: expiryDate
   });
+
+  // automated penalties rules
+  applyPenaltyRules(db, inspectionId, stallId, grade);
 
   saveDB(db);
 
-  msg.textContent = "Saved. Grade: " + grade + " (expires " + expiry + ")";
+  // reset UI
+  scoreInput.value = "";
+  remarksInput.value = "";
+  selectedViolations = [];
+  renderViolations();
+
+  msg.textContent = "Saved. Grade: " + grade + " (expires on " + expiryDate + ")";
 });
+
+function findStallById(stallId) {
+  for (var i = 0; i < db.stalls.length; i++) {
+    if (db.stalls[i].id === stallId) return db.stalls[i];
+  }
+  return null;
+}
+
+function findViolationFromCatalog(code) {
+  for (var i = 0; i < db.violationCatalog.length; i++) {
+    if (db.violationCatalog[i].code === code) return db.violationCatalog[i];
+  }
+  return null;
+}
+
+// ---- automated penalties (excluding notifications) ----
+function applyPenaltyRules(db, inspectionId, stallId, grade) {
+  var hasCritical = false;
+  var vioCount = 0;
+
+  for (var i = 0; i < db.inspectionViolations.length; i++) {
+    var v = db.inspectionViolations[i];
+    if (v.inspectionId !== inspectionId) continue;
+    vioCount++;
+    if (v.severity === "CRITICAL") hasCritical = true;
+  }
+
+  // Simple rules:
+  // Grade D OR any CRITICAL -> WARNING + REINSPECTION
+  // Grade C with >=2 violations -> WARNING
+  if (grade === "D" || hasCritical) {
+    db.penalties.push({ id: makeId("pen"), stallId: stallId, inspectionId: inspectionId, action: "WARNING", createdDateTime: new Date().toISOString() });
+    db.penalties.push({ id: makeId("pen"), stallId: stallId, inspectionId: inspectionId, action: "REINSPECTION", createdDateTime: new Date().toISOString() });
+    return;
+  }
+
+  if (grade === "C" && vioCount >= 2) {
+    db.penalties.push({ id: makeId("pen"), stallId: stallId, inspectionId: inspectionId, action: "WARNING", createdDateTime: new Date().toISOString() });
+  }
+}
+

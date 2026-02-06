@@ -35,14 +35,12 @@ document.addEventListener("DOMContentLoaded", function () {
   conductedDateEl.value = new Date().toISOString().slice(0, 10);
 
   // -----------------------
-  // Populate violation catalog dropdown
-  // (supports custom violations)
+  // Populate violation catalog dropdown (LOCAL)
   // -----------------------
   function populateViolationDropdown(selectedCode) {
     var dbNow = loadDB();
     var list = (dbNow.violationCatalog || []).slice();
 
-    // Stable sorting
     list.sort(function (a, b) {
       return String(a.code).localeCompare(String(b.code));
     });
@@ -181,7 +179,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
     violationsList.innerHTML = html;
 
-    // wire remove buttons
     Array.prototype.slice
       .call(violationsList.querySelectorAll("button[data-idx]"))
       .forEach(function (btn) {
@@ -196,107 +193,111 @@ document.addEventListener("DOMContentLoaded", function () {
   renderPendingViolations();
 
   // -----------------------
-  // Save inspection
+  // Save inspection (FIRESTORE)
   // -----------------------
-  saveBtn.addEventListener("click", function () {
-    var db = loadDB();
+  saveBtn.addEventListener("click", async function () {
+    try {
+      // Make sure your Firestore mapping exists
+      if (!window.DB || typeof DB.addInspection !== "function") {
+        return showMsg(
+          "Firestore DB not loaded. Check your <script type='module'> links.",
+          true
+        );
+      }
 
-    var stallId = stallSelect.value;
-    var scheduledDate = scheduledDateEl.value || null;
-    var conductedDate = conductedDateEl.value;
-    var score = Number(scoreEl.value);
+      var localDb = loadDB();
 
-    if (!stallId) return showMsg("Please select a stall.", true);
-    if (!conductedDate) return showMsg("Please select conducted date.", true);
-    if (Number.isNaN(score) || score < 0 || score > 100)
-      return showMsg("Score must be 0–100.", true);
+      var stallId = stallSelect.value;
+      var scheduledDate = scheduledDateEl.value || null;
+      var conductedDate = conductedDateEl.value;
+      var score = Number(scoreEl.value);
 
-    var grade = scoreToGrade(score);
-    var expiryDate = addDaysToDate(conductedDate, 180);
+      if (!stallId) return showMsg("Please select a stall.", true);
+      if (!conductedDate) return showMsg("Please select conducted date.", true);
+      if (Number.isNaN(score) || score < 0 || score > 100)
+        return showMsg("Score must be 0–100.", true);
 
-    // Create inspection record
-    db.inspections = db.inspections || [];
-    db.inspectionViolations = db.inspectionViolations || [];
-    db.penalties = db.penalties || [];
+      var grade = scoreToGrade(score);
+      var expiryDate = addDaysToDate(conductedDate, 180);
 
-    var inspectionId = makeId("insp");
+      showMsg("Saving to Firestore...", false);
 
-    db.inspections.push({
-      id: inspectionId,
-      stallId: stallId,
-      officerId: "nea1",
-      scheduledDate: scheduledDate,
-      conductedDate: conductedDate,
-      score: score,
-      grade: grade,
-      remarks: remarksEl.value || "",
-    });
-
-    // Save violations linked to this inspection
-    pendingViolations.forEach(function (v) {
-      db.inspectionViolations.push({
-        id: makeId("vio"),
-        inspectionId: inspectionId,
-        code: v.code,
-        title: v.title,
-        severity: v.severity,
-        notes: v.notes || "",
-      });
-    });
-
-    // Update stall gradeHistory (transparency + graphs)
-    var stall = (db.stalls || []).find(function (s) {
-      return s.id === stallId;
-    });
-    if (stall) {
-      stall.gradeHistory = stall.gradeHistory || [];
-      stall.gradeHistory.push({
-        date: conductedDate,
-        grade: grade,
+      // 1) Save inspection document
+      var inspectionId = await DB.addInspection({
+        stallId: stallId,
+        officerId: "nea1",
+        scheduledDate: scheduledDate,
+        conductedDate: conductedDate,
         score: score,
+        grade: grade,
+        remarks: remarksEl.value || "",
         expiryDate: expiryDate,
       });
+
+      // 2) Save violations as subcollection (if any)
+      if (pendingViolations.length > 0 && typeof DB.addInspectionViolations === "function") {
+        await DB.addInspectionViolations(inspectionId, pendingViolations);
+      }
+
+      // 3) Auto penalties (simple rules) -> save to Firestore
+      var hasCritical = pendingViolations.some(function (v) {
+        return v.severity === "CRITICAL";
+      });
+
+      if (typeof DB.addPenalty === "function") {
+        if (grade === "D" || hasCritical) {
+          await DB.addPenalty({
+            stallId: stallId,
+            inspectionId: inspectionId,
+            action: "WARNING",
+            reason: grade === "D" ? "Grade D" : "Critical violation",
+          });
+          await DB.addPenalty({
+            stallId: stallId,
+            inspectionId: inspectionId,
+            action: "REINSPECTION",
+            reason: "Follow-up required",
+          });
+        } else if (grade === "C" && pendingViolations.length >= 2) {
+          await DB.addPenalty({
+            stallId: stallId,
+            inspectionId: inspectionId,
+            action: "WARNING",
+            reason: "Grade C with multiple violations",
+          });
+        }
+      }
+
+      // 4) Update LOCAL gradeHistory so your Stall graphs can still work
+      var stall = (localDb.stalls || []).find(function (s) {
+        return s.id === stallId;
+      });
+      if (stall) {
+        stall.gradeHistory = stall.gradeHistory || [];
+        stall.gradeHistory.push({
+          date: conductedDate,
+          grade: grade,
+          score: score,
+          expiryDate: expiryDate,
+          inspectionId: inspectionId, // helpful link
+        });
+        saveDB(localDb);
+      }
+
+      // reset form
+      scoreEl.value = "";
+      remarksEl.value = "";
+      pendingViolations = [];
+      renderPendingViolations();
+
+      showMsg("Saved to Firestore! (Grade " + grade + ")", false);
+    } catch (err) {
+      console.error(err);
+      showMsg(
+        "Save failed: " + (err && err.message ? err.message : String(err)),
+        true
+      );
     }
-
-    // Auto penalties (simple rules)
-    var hasCritical = pendingViolations.some(function (v) {
-      return v.severity === "CRITICAL";
-    });
-
-    if (grade === "D" || hasCritical) {
-      db.penalties.push({
-        id: makeId("pen"),
-        stallId: stallId,
-        inspectionId: inspectionId,
-        action: "WARNING",
-        createdDateTime: new Date().toISOString(),
-      });
-      db.penalties.push({
-        id: makeId("pen"),
-        stallId: stallId,
-        inspectionId: inspectionId,
-        action: "REINSPECTION",
-        createdDateTime: new Date().toISOString(),
-      });
-    } else if (grade === "C" && pendingViolations.length >= 2) {
-      db.penalties.push({
-        id: makeId("pen"),
-        stallId: stallId,
-        inspectionId: inspectionId,
-        action: "WARNING",
-        createdDateTime: new Date().toISOString(),
-      });
-    }
-
-    saveDB(db);
-
-    // reset form
-    scoreEl.value = "";
-    remarksEl.value = "";
-    pendingViolations = [];
-    renderPendingViolations();
-
-    showMsg("Inspection saved (Grade " + grade + ").");
   });
 
   function showMsg(text, isError) {

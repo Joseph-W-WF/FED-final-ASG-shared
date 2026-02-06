@@ -2,6 +2,7 @@ requireNEA();
 
 var db = loadDB();
 var select = document.getElementById("stallSelect");
+var historyDiv = document.getElementById("historyTable");
 var chart = null;
 
 // dropdown
@@ -16,6 +17,8 @@ select.addEventListener("change", render);
 render();
 
 function render() {
+  db = loadDB();
+
   var stall = null;
   for (var i = 0; i < db.stalls.length; i++) {
     if (db.stalls[i].id === select.value) stall = db.stalls[i];
@@ -24,33 +27,31 @@ function render() {
 
   var history = stall.gradeHistory || [];
 
-  // Build month buckets: YYYY-MM => last grade value in that month
-  var monthMap = {}; // { "2026-01": {value:4, label:"Jan 2026"} }
+  renderMonthlyChart(history);
+  renderHistoryTable(history);
+}
 
-  for (var j = 0; j < history.length; j++) {
-    var d = history[j].date; // YYYY-MM-DD
+function renderMonthlyChart(history) {
+  // month bucket: YYYY-MM -> last grade value in that month
+  var monthMap = {}; // { "2026-02": {value:3, label:"Feb 2026"} }
+
+  for (var i = 0; i < history.length; i++) {
+    var d = history[i].date;
     if (!d) continue;
 
-    var ym = d.slice(0, 7); // YYYY-MM
-    var grade = history[j].grade;
-
-    monthMap[ym] = {
-      value: gradeToValue(grade),
-      label: monthLabel(ym)
-    };
+    var ym = d.slice(0, 7);
+    monthMap[ym] = { value: gradeToValue(history[i].grade), label: monthLabel(ym) };
   }
 
-  // Sort months
   var months = [];
   for (var key in monthMap) months.push(key);
-  months.sort(); // YYYY-MM sorts correctly
+  months.sort();
 
   var labels = [];
   var values = [];
-  for (var k = 0; k < months.length; k++) {
-    var ym2 = months[k];
-    labels.push(monthMap[ym2].label);
-    values.push(monthMap[ym2].value);
+  for (var j = 0; j < months.length; j++) {
+    labels.push(monthMap[months[j]].label);
+    values.push(monthMap[months[j]].value);
   }
 
   if (chart) chart.destroy();
@@ -59,27 +60,62 @@ function render() {
     type: "line",
     data: {
       labels: labels,
-      datasets: [
-        { label: "Grade Trend (Monthly)", data: values }
-      ]
+      datasets: [{ label: "Grade Trend (Monthly)", data: values }]
     },
     options: {
       scales: {
-        y: { min: 1, max: 4, ticks: { stepSize: 1 } }
+        y: {
+          min: 1, max: 4,
+          ticks: {
+            stepSize: 1,
+            callback: function(v){
+              if (v === 4) return "A";
+              if (v === 3) return "B";
+              if (v === 2) return "C";
+              return "D";
+            }
+          }
+        }
       }
     }
   });
+}
+
+function renderHistoryTable(history) {
+  if (history.length === 0) {
+    historyDiv.innerHTML = "<p class='small'>No inspection history yet.</p>";
+    return;
+  }
+
+  // newest first
+  var copy = history.slice();
+  copy.sort(function(a,b){ return new Date(b.date) - new Date(a.date); });
+
+  var html = "<table class='table'><thead><tr>" +
+    "<th>Date</th><th>Score</th><th>Grade</th><th>Expiry Date</th>" +
+    "</tr></thead><tbody>";
+
+  for (var i = 0; i < copy.length; i++) {
+    html += "<tr>" +
+      "<td>" + copy[i].date + "</td>" +
+      "<td>" + (copy[i].score != null ? copy[i].score : "-") + "</td>" +
+      "<td><strong>" + copy[i].grade + "</strong></td>" +
+      "<td>" + (copy[i].expiryDate || "-") + "</td>" +
+      "</tr>";
+  }
+
+  html += "</tbody></table>";
+  historyDiv.innerHTML = html;
 }
 
 function gradeToValue(g) {
   if (g === "A") return 4;
   if (g === "B") return 3;
   if (g === "C") return 2;
-  return 1; // D
+  return 1;
 }
 
 function monthLabel(ym) {
-  // ym = "YYYY-MM"
   var year = ym.slice(0, 4);
   var month = ym.slice(5, 7);
 

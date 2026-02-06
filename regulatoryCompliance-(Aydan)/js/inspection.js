@@ -31,11 +31,9 @@ conductedDateInput.value = today;
 
 // ---- setup violation dropdown ----
 if (!db.violationCatalog) db.violationCatalog = [];
-
 for (var j = 0; j < db.violationCatalog.length; j++) {
   var v = db.violationCatalog[j];
-  var opt = documents
- erElement("option");
+  var opt = document.createElement("option"); // FIXED
   opt.value = v.code;
   opt.textContent = v.code + " - " + v.title + " (" + v.severityDefault + ")";
   violationSelect.appendChild(opt);
@@ -54,12 +52,7 @@ addViolationBtn.addEventListener("click", function () {
     }
   }
 
-  selectedViolations.push({
-    code: v.code,
-    title: v.title,
-    severity: v.severityDefault
-  });
-
+  selectedViolations.push({ code: v.code, title: v.title, severity: v.severityDefault });
   renderViolations();
 });
 
@@ -120,24 +113,24 @@ saveBtn.addEventListener("click", function () {
   // compute grade
   var grade = scoreToGrade(score);
 
-  // create inspection record
   if (!db.inspections) db.inspections = [];
+  if (!db.inspectionViolations) db.inspectionViolations = [];
+  if (!db.penalties) db.penalties = [];
+
   var inspectionId = makeId("insp");
 
-  var inspection = {
+  db.inspections.push({
     id: inspectionId,
     stallId: stallId,
-    officerId: "nea1", // simple demo
+    officerId: "nea1",
     scheduledDate: scheduledDate,
     conductedDate: conductedDate,
     score: score,
     grade: grade,
     remarks: remarks
-  };
-  db.inspections.push(inspection);
+  });
 
   // save violations linked to this inspection
-  if (!db.inspectionViolations) db.inspectionViolations = [];
   for (var i = 0; i < selectedViolations.length; i++) {
     var v = selectedViolations[i];
     db.inspectionViolations.push({
@@ -158,13 +151,13 @@ saveBtn.addEventListener("click", function () {
   var expiryDate = addDaysToDate(conductedDate, 180);
 
   stall.gradeHistory.push({
-    date: conductedDate,       // kept for history
+    date: conductedDate,
     grade: grade,
     score: score,
     expiryDate: expiryDate
   });
 
-  // automated penalties (simple rules)
+  // automated penalties rules
   applyPenaltyRules(db, inspectionId, stallId, grade);
 
   saveDB(db);
@@ -194,8 +187,6 @@ function findViolationFromCatalog(code) {
 
 // ---- automated penalties (excluding notifications) ----
 function applyPenaltyRules(db, inspectionId, stallId, grade) {
-  if (!db.penalties) db.penalties = [];
-
   var hasCritical = false;
   var vioCount = 0;
 
@@ -206,36 +197,17 @@ function applyPenaltyRules(db, inspectionId, stallId, grade) {
     if (v.severity === "CRITICAL") hasCritical = true;
   }
 
-  // Rule set (beginner-friendly):
-  // 1) Grade D OR any CRITICAL -> WARNING + REINSPECTION
-  // 2) Grade C with many violations (>=2) -> WARNING
-  // 3) Grade A/B -> no penalty
-
+  // Simple rules:
+  // Grade D OR any CRITICAL -> WARNING + REINSPECTION
+  // Grade C with >=2 violations -> WARNING
   if (grade === "D" || hasCritical) {
-    db.penalties.push({
-      id: makeId("pen"),
-      stallId: stallId,
-      inspectionId: inspectionId,
-      action: "WARNING",
-      createdDateTime: new Date().toISOString()
-    });
-    db.penalties.push({
-      id: makeId("pen"),
-      stallId: stallId,
-      inspectionId: inspectionId,
-      action: "REINSPECTION",
-      createdDateTime: new Date().toISOString()
-    });
+    db.penalties.push({ id: makeId("pen"), stallId: stallId, inspectionId: inspectionId, action: "WARNING", createdDateTime: new Date().toISOString() });
+    db.penalties.push({ id: makeId("pen"), stallId: stallId, inspectionId: inspectionId, action: "REINSPECTION", createdDateTime: new Date().toISOString() });
     return;
   }
 
   if (grade === "C" && vioCount >= 2) {
-    db.penalties.push({
-      id: makeId("pen"),
-      stallId: stallId,
-      inspectionId: inspectionId,
-      action: "WARNING",
-      createdDateTime: new Date().toISOString()
-    });
+    db.penalties.push({ id: makeId("pen"), stallId: stallId, inspectionId: inspectionId, action: "WARNING", createdDateTime: new Date().toISOString() });
   }
 }
+

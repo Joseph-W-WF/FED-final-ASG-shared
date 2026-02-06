@@ -1,28 +1,6 @@
 /* account.js
-   Uses db.js helpers: loadDB(), saveDB(), resetDB(), makeId()
-   Your db.js already has:
-   - db.users (seeded)
-   - db.passwordResets (empty)
+   Requires db.js helpers: loadDB(), saveDB(), resetDB(), makeId()
 */
-function setAuthOptionsForRole(role) {
-  // default: customer has all options
-  const showRegister = role === "CUSTOMER";
-  const showGuest = role === "CUSTOMER";
-
-  $("btnGoRegister").style.display = showRegister ? "inline-block" : "none";
-  $("btnGuest").style.display = showGuest ? "inline-block" : "none";
-
-  // NEA should not use password recovery (optional, but usually true)
-  $("btnForgot").style.display = (role === "CUSTOMER") ? "inline-block" : "none";
-
-  // Show Officer ID only when NEA
-  $("neaIdWrap").style.display = (role === "NEA") ? "block" : "none";
-
-  // Update subtitle text
-  if (role === "CUSTOMER") $("authSubtitle").textContent = "Customer: Sign in, register, or continue as guest.";
-  if (role === "VENDOR") $("authSubtitle").textContent = "Vendor: Sign in (accounts are pre-created).";
-  if (role === "NEA") $("authSubtitle").textContent = "NEA Officer: Sign in with Officer ID, username and password.";
-}
 
 (function () {
   // ---------------------------
@@ -33,7 +11,7 @@ function setAuthOptionsForRole(role) {
 
   // Recovery flow state (in-memory)
   var recoveryState = {
-    resetId: null,   // passwordResets.id
+    resetId: null,
     userId: null
   };
 
@@ -42,21 +20,27 @@ function setAuthOptionsForRole(role) {
   // ---------------------------
   function $(id) { return document.getElementById(id); }
 
+  function on(id, evt, fn) {
+    var el = $(id);
+    if (el) el.addEventListener(evt, fn);
+  }
+
   function showNotice(msg, type) {
     var n = $("notice");
     n.style.display = "block";
     n.textContent = msg;
 
-    // tiny type styling without extra CSS complexity
-    n.style.borderColor = (type === "error") ? "rgba(255,107,107,0.5)" :
-                        (type === "ok") ? "rgba(107,255,181,0.35)" : "rgba(255,255,255,0.12)";
+    n.style.borderColor =
+      (type === "error") ? "rgba(239,68,68,0.5)" :
+      (type === "ok") ? "rgba(16,185,129,0.35)" :
+      "rgba(229,231,235,1)";
   }
 
   function clearNotice() {
     var n = $("notice");
     n.style.display = "none";
     n.textContent = "";
-    n.style.borderColor = "rgba(255,255,255,0.12)";
+    n.style.borderColor = "rgba(229,231,235,1)";
   }
 
   function setCrumb(text) {
@@ -73,8 +57,9 @@ function setAuthOptionsForRole(role) {
 
   function setActiveView(viewId, crumbText) {
     clearNotice();
-    var views = document.querySelectorAll(".view");
-    views.forEach(function (v) { v.classList.remove("active"); });
+    document.querySelectorAll(".view").forEach(function (v) {
+      v.classList.remove("active");
+    });
     var view = $(viewId);
     if (view) view.classList.add("active");
     if (crumbText) setCrumb(crumbText);
@@ -109,6 +94,43 @@ function setAuthOptionsForRole(role) {
   }
 
   // ---------------------------
+  // Role rules (YOUR REQUIREMENT)
+  // ---------------------------
+  function applyRoleRules(role) {
+    var isCustomer = role === "CUSTOMER";
+    var isVendor = role === "VENDOR";
+    var isNEA = role === "NEA";
+
+    // Auth-home buttons
+    if ($("btnGoRegister")) $("btnGoRegister").style.display = isCustomer ? "inline-block" : "none";
+    if ($("btnGuest")) $("btnGuest").style.display = isCustomer ? "inline-block" : "none";
+
+    // Sign-in page: hide register hint for vendor/NEA
+    if ($("registerHintRow")) $("registerHintRow").style.display = isCustomer ? "flex" : "none";
+
+    // Recovery only for customers
+    if ($("btnForgot")) $("btnForgot").style.display = isCustomer ? "inline-block" : "none";
+    if ($("navRecoveryBtn")) $("navRecoveryBtn").style.display = isCustomer ? "block" : "none";
+
+    // NEA requires ID field
+    if ($("neaIdWrap")) $("neaIdWrap").style.display = isNEA ? "block" : "none";
+
+    // Subtitle text
+    if ($("authTitle")) $("authTitle").textContent = "Sign In";
+    if ($("authSubtitle")) {
+      if (isCustomer) $("authSubtitle").textContent = "Customer: Sign in, register, or continue as guest.";
+      if (isVendor) $("authSubtitle").textContent = "Vendor: Sign in (account is pre-registered).";
+      if (isNEA) $("authSubtitle").textContent = "NEA: Sign in with ID, username and password.";
+    }
+
+    // Safety: if vendor/NEA is on recovery page, kick them back
+    if (!isCustomer) {
+      var active = document.querySelector(".view.active");
+      if (active && active.id === "view-recovery") setActiveView("view-auth", "Sign In");
+    }
+  }
+
+  // ---------------------------
   // Validation helpers
   // ---------------------------
   function normalize(str) {
@@ -122,24 +144,28 @@ function setAuthOptionsForRole(role) {
 
   function isPhone(s) {
     s = normalize(s);
-    // simple SG-ish check: 8 digits
     return /^\d{8}$/.test(s);
   }
 
   // ---------------------------
-  // DB helpers for users
+  // DB helpers
   // ---------------------------
+  function usernameExists(username) {
+    var db = loadDB();
+    var v = normalize(username).toLowerCase();
+    return db.users.some(function (u) {
+      return u.username && u.username.toLowerCase() === v;
+    });
+  }
+
   function findUserByUsernameOrEmailOrPhone(value, roleFilter) {
     var db = loadDB();
     var v = normalize(value).toLowerCase();
 
     for (var i = 0; i < db.users.length; i++) {
       var u = db.users[i];
-
       if (roleFilter && u.role !== roleFilter) continue;
 
-      // We store some optional fields for new accounts:
-      // u.email, u.phone, u.fullName
       var usernameMatch = (u.username && u.username.toLowerCase() === v);
       var emailMatch = (u.email && u.email.toLowerCase() === v);
       var phoneMatch = (u.phone && normalize(u.phone) === v);
@@ -147,14 +173,6 @@ function setAuthOptionsForRole(role) {
       if (usernameMatch || emailMatch || phoneMatch) return u;
     }
     return null;
-  }
-
-  function usernameExists(username) {
-    var db = loadDB();
-    var v = normalize(username).toLowerCase();
-    return db.users.some(function (u) {
-      return u.username && u.username.toLowerCase() === v;
-    });
   }
 
   function createUsernameFromEmailOrPhone(email, phone) {
@@ -169,14 +187,15 @@ function setAuthOptionsForRole(role) {
   }
 
   // ---------------------------
-  // AUTH: Register / Login
+  // AUTH: Register (CUSTOMER ONLY)
   // ---------------------------
   function registerAccount(role, fullName, email, phone, password) {
-    var db = loadDB();
-
-    if (!role || (role !== "CUSTOMER" && role !== "VENDOR" && role !== "NEA")) {
-      return { ok: false, msg: "Invalid role." };
+    // HARD RULE: only customers can register
+    if (role !== "CUSTOMER") {
+      return { ok: false, msg: "Only customers can register. Vendors/NEA are pre-registered." };
     }
+
+    var db = loadDB();
 
     fullName = normalize(fullName);
     email = normalize(email);
@@ -187,44 +206,30 @@ function setAuthOptionsForRole(role) {
     if (!phone || !isPhone(phone)) return { ok: false, msg: "Use an 8-digit phone number." };
     if (!password || password.length < 6) return { ok: false, msg: "Password must be at least 6 characters." };
 
-    // Email optional, but if present must look like email
     if (email && !isEmail(email)) return { ok: false, msg: "Email format looks wrong." };
 
-    // Prevent duplicates by phone/email/username
-    if (findUserByUsernameOrEmailOrPhone(phone, role)) {
-      return { ok: false, msg: "This phone is already used for this role." };
-    }
-    if (email && findUserByUsernameOrEmailOrPhone(email, role)) {
-      return { ok: false, msg: "This email is already used for this role." };
-    }
+    // Prevent duplicates in CUSTOMER role
+    if (findUserByUsernameOrEmailOrPhone(phone, "CUSTOMER")) return { ok: false, msg: "This phone is already used." };
+    if (email && findUserByUsernameOrEmailOrPhone(email, "CUSTOMER")) return { ok: false, msg: "This email is already used." };
 
-    // Generate username (and ensure unique)
+    // Generate username unique across all users (simple)
     var username = createUsernameFromEmailOrPhone(email, phone);
     var tries = 0;
     while (usernameExists(username) && tries < 10) {
       username = username + Math.floor(Math.random() * 10);
       tries++;
     }
-    if (usernameExists(username)) {
-      username = "user" + Date.now();
-    }
+    if (usernameExists(username)) username = "user" + Date.now();
 
     var newUser = {
-      id: makeId(role === "CUSTOMER" ? "c" : role === "VENDOR" ? "v" : "nea"),
-      role: role,
+      id: makeId("c"),
+      role: "CUSTOMER",
       username: username,
       password: password,
-
-      // extra fields for your app (safe to add; db.js seed users won’t have them)
       fullName: fullName,
       email: email,
       phone: phone
     };
-
-    // Vendor: (optional) you might later assign stallId after approval
-    if (role === "VENDOR") {
-      newUser.stallId = null;
-    }
 
     db.users.push(newUser);
     saveDB(db);
@@ -232,45 +237,72 @@ function setAuthOptionsForRole(role) {
     return { ok: true, msg: "Registered! Your username is: " + username, user: newUser };
   }
 
-  function login(role, usernameOrEmailOrPhone, password) {
+  // ---------------------------
+  // AUTH: Login
+  // ---------------------------
+  function login(role, usernameOrEmailOrPhone, password, neaId) {
+    var db = loadDB();
+
     usernameOrEmailOrPhone = normalize(usernameOrEmailOrPhone);
     password = normalize(password);
+    neaId = normalize(neaId);
 
+    if (!role) return { ok: false, msg: "Choose a role first." };
+
+    // NEA: must use ID + username + password
+    if (role === "NEA") {
+      if (!neaId) return { ok: false, msg: "ID is required for NEA login." };
+      if (!usernameOrEmailOrPhone) return { ok: false, msg: "Username is required." };
+      if (!password) return { ok: false, msg: "Password is required." };
+
+      var uN = db.users.find(function (u) {
+        return u.role === "NEA"
+          && normalize(u.id).toLowerCase() === neaId.toLowerCase()
+          && normalize(u.username).toLowerCase() === usernameOrEmailOrPhone.toLowerCase();
+      });
+
+      if (!uN) return { ok: false, msg: "NEA account not found (check ID / username)." };
+      if (uN.password !== password) return { ok: false, msg: "Wrong password." };
+
+      setSessionUser({ id: uN.id, role: uN.role, username: uN.username });
+      return { ok: true, msg: "Signed in as NEA " + uN.username, user: uN };
+    }
+
+    // Vendor/Customer: username/email/phone + password
     if (!usernameOrEmailOrPhone || !password) {
       return { ok: false, msg: "Enter username/email/phone and password." };
     }
 
-    // If user typed email/phone, we still search them
     var u = findUserByUsernameOrEmailOrPhone(usernameOrEmailOrPhone, role);
     if (!u) return { ok: false, msg: "Account not found for this role." };
     if (u.password !== password) return { ok: false, msg: "Wrong password." };
 
-    // Store session (minimal info)
     setSessionUser({ id: u.id, role: u.role, username: u.username });
     return { ok: true, msg: "Signed in as " + u.username, user: u };
   }
 
   // ---------------------------
-  // RECOVERY: OTP + Reset
+  // RECOVERY (CUSTOMER ONLY)
   // ---------------------------
   function generateOtp() {
-    // 6-digit OTP
     return ("" + Math.floor(100000 + Math.random() * 900000));
   }
 
   function requestOtp(role, value, mode) {
+    // HARD RULE
+    if (role !== "CUSTOMER") return { ok: false, msg: "Recovery is only for customers." };
+
     var db = loadDB();
     value = normalize(value);
 
     if (mode === "email" && !isEmail(value)) return { ok: false, msg: "Enter a valid email." };
     if (mode === "phone" && !isPhone(value)) return { ok: false, msg: "Enter an 8-digit phone number." };
 
-    var u = findUserByUsernameOrEmailOrPhone(value, role);
-    if (!u) return { ok: false, msg: "No account matches this " + mode + " for the selected role." };
+    var u = findUserByUsernameOrEmailOrPhone(value, "CUSTOMER");
+    if (!u) return { ok: false, msg: "No customer account matches this " + mode + "." };
 
     var otp = generateOtp();
 
-    // Store reset request into db.passwordResets
     var resetReq = {
       id: makeId("reset"),
       userId: u.id,
@@ -284,12 +316,9 @@ function setAuthOptionsForRole(role) {
     db.passwordResets.push(resetReq);
     saveDB(db);
 
-    // Keep state for the next pages
     recoveryState.resetId = resetReq.id;
     recoveryState.userId = u.id;
 
-    // Since this is frontend only, we "simulate" sending by showing OTP.
-    // In real app: you never show OTP like this.
     return { ok: true, msg: "OTP sent (simulation): " + otp };
   }
 
@@ -302,14 +331,11 @@ function setAuthOptionsForRole(role) {
     if (!rr) return { ok: false, msg: "Recovery request not found. Please request OTP again." };
     if (rr.used) return { ok: false, msg: "This OTP was already used. Request a new one." };
 
-    // Optional expiry (10 minutes)
+    // Expiry 10 minutes
     var created = new Date(rr.createdDate).getTime();
-    var now = Date.now();
-    var tenMins = 10 * 60 * 1000;
-    if (now - created > tenMins) return { ok: false, msg: "OTP expired. Request a new one." };
+    if (Date.now() - created > 10 * 60 * 1000) return { ok: false, msg: "OTP expired. Request a new one." };
 
     if (rr.token !== otpInput) return { ok: false, msg: "Wrong OTP." };
-
     return { ok: true, msg: "OTP verified." };
   }
 
@@ -336,7 +362,6 @@ function setAuthOptionsForRole(role) {
     rr.used = true;
     saveDB(db);
 
-    // clear state
     recoveryState.resetId = null;
     recoveryState.userId = null;
 
@@ -347,12 +372,19 @@ function setAuthOptionsForRole(role) {
   // Wiring UI
   // ---------------------------
   function init() {
-    // Sidebar nav
+    // Sidebar navigation
     document.querySelectorAll(".nav-btn").forEach(function (btn) {
       btn.addEventListener("click", function () {
         var go = btn.getAttribute("data-go");
+        var role = getSessionRole();
+
+        if (go === "view-recovery" && role !== "CUSTOMER") {
+          showNotice("Recovery is only for customers.", "error");
+          return;
+        }
+
         if (go === "view-role") setActiveView("view-role", "Role");
-        if (go === "view-auth") setActiveView("view-auth", "Sign In / Register");
+        if (go === "view-auth") setActiveView("view-auth", "Sign In");
         if (go === "view-recovery") setActiveView("view-recovery", "Recovery");
       });
     });
@@ -362,77 +394,66 @@ function setAuthOptionsForRole(role) {
       card.addEventListener("click", function () {
         var role = card.getAttribute("data-role");
         setSessionRole(role);
+        applyRoleRules(role);
         showNotice("Selected role: " + role, "ok");
-
-        // Update auth page text
-        var title = "Sign In / Register";
-        var subtitle = "Continue.";
-        if (role === "CUSTOMER") subtitle = "Customer: Sign in, register, or continue as guest.";
-        if (role === "VENDOR") subtitle = "Vendor: Sign in or register (stall assignment later).";
-        if (role === "NEA") subtitle = "NEA: Sign in (usually provided by admin).";
-
-        $("authTitle").textContent = title;
-        $("authSubtitle").textContent = subtitle;
       });
     });
 
-    $("btnContinueFromRole").addEventListener("click", function () {
-      if (!getSessionRole()) {
-        showNotice("Please choose a role first.", "error");
-        return;
-      }
-      setActiveView("view-auth", "Sign In / Register");
+    on("btnContinueFromRole", "click", function () {
+      var role = getSessionRole();
+      if (!role) return showNotice("Please choose a role first.", "error");
+      applyRoleRules(role);
+      setActiveView("view-auth", "Sign In");
     });
 
     // Auth home buttons
-    $("btnGoSignin").addEventListener("click", function () {
-      if (!getSessionRole()) return showNotice("Choose a role first.", "error");
+    on("btnGoSignin", "click", function () {
+      var role = getSessionRole();
+      if (!role) return showNotice("Choose a role first.", "error");
+      applyRoleRules(role);
       setActiveView("view-signin", "Sign In");
     });
 
-    $("btnGoRegister").addEventListener("click", function () {
+    on("btnGoRegister", "click", function () {
       var role = getSessionRole();
-      if (!role) return showNotice("Choose a role first.", "error");
-
-      // If you want to block NEA self-register:
-      if (role === "NEA") return showNotice("NEA accounts are usually created by admin.", "error");
-
+      if (role !== "CUSTOMER") return showNotice("Only customers can register.", "error");
       setActiveView("view-register", "Register");
     });
 
-    $("btnGuest").addEventListener("click", function () {
+    on("btnGuest", "click", function () {
       var role = getSessionRole();
-      if (!role) return showNotice("Choose a role first.", "error");
-      if (role !== "CUSTOMER") return showNotice("Guest is only for Customers.", "error");
+      if (role !== "CUSTOMER") return showNotice("Guest is only for customers.", "error");
 
-      // store a guest session
       var guestId = makeId("guest");
       setSessionUser({ id: guestId, role: "GUEST", username: "guest" });
       showNotice("Continuing as guest.", "ok");
     });
 
-    // Signin to recovery / register
-    $("btnForgot").addEventListener("click", function () {
-      if (!getSessionRole()) return showNotice("Choose a role first.", "error");
+    // Signin links
+    on("btnForgot", "click", function () {
+      var role = getSessionRole();
+      if (role !== "CUSTOMER") return showNotice("Recovery is only for customers.", "error");
       setActiveView("view-recovery", "Recovery");
     });
-    $("btnToRegister").addEventListener("click", function () {
-      if (getSessionRole() === "NEA") return showNotice("NEA accounts are created by admin.", "error");
+
+    on("btnToRegister", "click", function () {
+      var role = getSessionRole();
+      if (role !== "CUSTOMER") return showNotice("Only customers can register.", "error");
       setActiveView("view-register", "Register");
     });
 
-    // Register to signin/back
-    $("btnToSignin").addEventListener("click", function () {
+    // Register page
+    on("btnToSignin", "click", function () {
       setActiveView("view-signin", "Sign In");
     });
-    $("btnBackAuth1").addEventListener("click", function () {
-      setActiveView("view-auth", "Sign In / Register");
+    on("btnBackAuth1", "click", function () {
+      setActiveView("view-auth", "Sign In");
     });
-    $("btnBackAuth2").addEventListener("click", function () {
-      setActiveView("view-auth", "Sign In / Register");
+    on("btnBackAuth2", "click", function () {
+      setActiveView("view-auth", "Sign In");
     });
 
-    // Tabs: recovery mode
+    // Recovery tabs
     var recoveryMode = "email";
     document.querySelectorAll(".tab").forEach(function (t) {
       t.addEventListener("click", function () {
@@ -440,42 +461,45 @@ function setAuthOptionsForRole(role) {
         t.classList.add("active");
         recoveryMode = t.getAttribute("data-mode");
 
+        // label text
         var label = $("recoveryLabel");
-        if (recoveryMode === "email") label.firstChild.textContent = "Email";
-        // (firstChild trick sometimes weird; do safer:)
-        label.childNodes[0].nodeValue = (recoveryMode === "email" ? "Email\n              " : "Phone\n              ");
+        if (label) {
+          label.childNodes[0].nodeValue = (recoveryMode === "email" ? "Email\n              " : "Phone\n              ");
+        }
 
-        $("rcValue").value = "";
-        $("rcValue").placeholder = recoveryMode === "email" ? "name@example.com" : "8xxxxxxx";
+        if ($("rcValue")) {
+          $("rcValue").value = "";
+          $("rcValue").placeholder = recoveryMode === "email" ? "name@example.com" : "8xxxxxxx";
+        }
       });
     });
 
     // Forms
-    $("signinForm").addEventListener("submit", function (e) {
+    on("signinForm", "submit", function (e) {
       e.preventDefault();
       var role = getSessionRole();
-      var res = login(role, $("siUsername").value, $("siPassword").value);
+      var neaId = (role === "NEA" && $("siNeaId")) ? $("siNeaId").value : "";
+      var res = login(role, $("siUsername").value, $("siPassword").value, neaId);
       showNotice(res.msg, res.ok ? "ok" : "error");
     });
 
-    $("registerForm").addEventListener("submit", function (e) {
+    on("registerForm", "submit", function (e) {
       e.preventDefault();
       var role = getSessionRole();
       var res = registerAccount(role, $("rgName").value, $("rgEmail").value, $("rgPhone").value, $("rgPassword").value);
 
       showNotice(res.msg, res.ok ? "ok" : "error");
       if (res.ok) {
-        // Bring them to sign in (or auto-login if you want)
         setActiveView("view-signin", "Sign In");
         $("siUsername").value = res.user.username;
         $("siPassword").value = "";
       }
     });
 
-    $("recoveryForm").addEventListener("submit", function (e) {
+    on("recoveryForm", "submit", function (e) {
       e.preventDefault();
       var role = getSessionRole();
-      if (!role) return showNotice("Choose a role first.", "error");
+      if (role !== "CUSTOMER") return showNotice("Recovery is only for customers.", "error");
 
       var res = requestOtp(role, $("rcValue").value, recoveryMode);
       showNotice(res.msg, res.ok ? "ok" : "error");
@@ -485,14 +509,14 @@ function setAuthOptionsForRole(role) {
       }
     });
 
-    $("otpForm").addEventListener("submit", function (e) {
+    on("otpForm", "submit", function (e) {
       e.preventDefault();
       var res = verifyOtp($("otpValue").value);
       showNotice(res.msg, res.ok ? "ok" : "error");
       if (res.ok) setActiveView("view-reset", "Reset");
     });
 
-    $("resetForm").addEventListener("submit", function (e) {
+    on("resetForm", "submit", function (e) {
       e.preventDefault();
       var res = resetPassword($("rsPassword").value, $("rsConfirm").value);
       showNotice(res.msg, res.ok ? "ok" : "error");
@@ -502,37 +526,38 @@ function setAuthOptionsForRole(role) {
       }
     });
 
-    // Back buttons inside recovery flow
-    $("btnBackRecovery").addEventListener("click", function () {
+    on("btnBackRecovery", "click", function () {
       setActiveView("view-recovery", "Recovery");
     });
-    $("btnBackOtp").addEventListener("click", function () {
+    on("btnBackOtp", "click", function () {
       setActiveView("view-otp", "OTP");
     });
 
     // Logout
-    $("btnLogout").addEventListener("click", function () {
+    on("btnLogout", "click", function () {
       setSessionUser(null);
       showNotice("Logged out.", "ok");
     });
 
     // Dev: reset DB
-    $("btnResetDB").addEventListener("click", function () {
+    on("btnResetDB", "click", function () {
       if (typeof resetDB === "function") {
         resetDB();
         setSessionUser(null);
         setSessionRole("");
         setRolePill("-");
+        applyRoleRules("");
         showNotice("DB reset to seed data.", "ok");
         setActiveView("view-role", "Role");
       } else {
-        showNotice("resetDB() not found.", "error");
+        showNotice("resetDB() not found in db.js", "error");
       }
     });
 
     // Initial state
     var role = getSessionRole();
     setRolePill(role);
+    applyRoleRules(role);
 
     var sessUser = getSessionUser();
     if (sessUser) setUserPill(sessUser.username || sessUser.id);
@@ -540,6 +565,5 @@ function setAuthOptionsForRole(role) {
     setActiveView("view-role", "Role");
   }
 
-  // Run
   document.addEventListener("DOMContentLoaded", init);
 })();

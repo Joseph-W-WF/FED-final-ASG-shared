@@ -6,6 +6,7 @@
   <title>Account Management</title>
   <link rel="stylesheet" href="../CSS/account.css" />
 </head>
+
 <body>
   <div class="app-shell">
     <aside class="sidebar">
@@ -20,7 +21,7 @@
       <nav class="nav">
         <button class="nav-btn" data-go="view-role">Role</button>
         <button class="nav-btn" data-go="view-auth">Sign In / Register</button>
-        <button class="nav-btn" data-go="view-recovery">Recovery</button>
+        <button class="nav-btn" data-go="view-recovery" id="navRecoveryBtn">Recovery</button>
       </nav>
 
       <div class="sideinfo">
@@ -41,55 +42,63 @@
       <section class="panel">
         <div class="notice" id="notice" aria-live="polite"></div>
 
-              <!-- VIEW: SIGN IN -->
-      <div class="view" id="view-signin">
-        <h1>Sign In</h1>
+        <!-- VIEW: ROLE -->
+        <div class="view" id="view-role">
+          <h1>Choose account type</h1>
+          <p class="muted">Pick what you’re using the system as.</p>
 
-        <!-- Only show for NEA -->
-        <div id="neaIdWrap" style="display:none;">
-          <label>
-            Officer ID
-            <input type="text" id="siOfficerId" autocomplete="off" />
-          </label>
-        </div>
+          <div class="card-grid">
+            <button class="card" data-role="CUSTOMER">
+              <div class="card-icon"></div>
+              <div class="card-title">Customer</div>
+              <div class="card-sub">Order food easily</div>
+            </button>
 
-        <form id="signinForm" class="form">
-          <label>
-            Username / Email / Phone
-            <input type="text" id="siUsername" autocomplete="username" required />
-          </label>
+            <button class="card" data-role="VENDOR">
+              <div class="card-icon"></div>
+              <div class="card-title">Vendor</div>
+              <div class="card-sub">Manage stall listing</div>
+            </button>
 
-          <label>
-            Password
-            <input type="password" id="siPassword" autocomplete="current-password" required />
-          </label>
-
-          <div class="row between">
-            <button type="button" class="link" id="btnForgot">Forgot password?</button>
-            <button class="primary" type="submit">Sign In</button>
+            <button class="card" data-role="NEA">
+              <div class="card-icon"></div>
+              <div class="card-title">NEA Officer</div>
+              <div class="card-sub">Inspection / regulatory</div>
+            </button>
           </div>
-        </form>
-      </div>
 
-
-              <!-- VIEW: AUTH HOME -->
-      <div class="view" id="view-auth">
-        <h1 id="authTitle">Sign In</h1>
-        <p class="muted" id="authSubtitle">Continue.</p>
-
-        <div class="row gap">
-          <button class="primary" id="btnGoSignin">Sign In</button>
-          <button class="secondary" id="btnGoRegister">Register</button>
-          <button class="ghost" id="btnGuest">Continue as guest</button>
+          <div class="row">
+            <button class="primary" id="btnContinueFromRole">Continue</button>
+          </div>
         </div>
-      </div>
+
+        <!-- VIEW: AUTH HOME -->
+        <div class="view" id="view-auth">
+          <h1 id="authTitle">Sign In</h1>
+          <p class="muted" id="authSubtitle">Continue.</p>
+
+          <div class="row gap">
+            <button class="primary" id="btnGoSignin">Sign In</button>
+            <button class="secondary" id="btnGoRegister">Register</button>
+            <button class="ghost" id="btnGuest">Continue as guest</button>
+          </div>
+        </div>
 
         <!-- VIEW: SIGN IN -->
         <div class="view" id="view-signin">
           <h1>Sign In</h1>
+
+          <!-- Only show for NEA -->
+          <div id="neaIdWrap" style="display:none;">
+            <label>
+              ID
+              <input type="text" id="siNeaId" autocomplete="off" />
+            </label>
+          </div>
+
           <form id="signinForm" class="form">
             <label>
-              Email / Username
+              Username / Email / Phone
               <input type="text" id="siUsername" autocomplete="username" required />
             </label>
 
@@ -103,14 +112,15 @@
               <button class="primary" type="submit">Sign In</button>
             </div>
 
-            <div class="row">
+            <!-- We hide this row for Vendor + NEA -->
+            <div class="row" id="registerHintRow">
               <span class="muted">Don’t have an account?</span>
               <button type="button" class="link" id="btnToRegister">Register</button>
             </div>
           </form>
         </div>
 
-        <!-- VIEW: REGISTER -->
+        <!-- VIEW: REGISTER (Customer only) -->
         <div class="view" id="view-register">
           <h1>Register</h1>
           <form id="registerForm" class="form">
@@ -146,7 +156,7 @@
           </form>
         </div>
 
-        <!-- VIEW: RECOVERY (request OTP) -->
+        <!-- VIEW: RECOVERY (Customer only) -->
         <div class="view" id="view-recovery">
           <h1>Recovery</h1>
           <p class="muted">Use email or phone to request OTP.</p>
@@ -172,7 +182,7 @@
         <!-- VIEW: OTP -->
         <div class="view" id="view-otp">
           <h1>Enter OTP</h1>
-          <p class="muted">Check your messages (simulated). OTP expires after a short time.</p>
+          <p class="muted">Check your messages (simulated).</p>
 
           <form id="otpForm" class="form">
             <label>
@@ -187,7 +197,7 @@
           </form>
         </div>
 
-        <!-- VIEW: RESET PASSWORD -->
+        <!-- VIEW: RESET -->
         <div class="view" id="view-reset">
           <h1>Reset password</h1>
           <form id="resetForm" class="form">
@@ -212,7 +222,7 @@
     </main>
   </div>
 
-  <!-- IMPORTANT: load db.js first -->
+  <!-- db.js must load before account.js -->
   <script src="../../db.js"></script>
   <script src="../JS/account.js"></script>
 </body>

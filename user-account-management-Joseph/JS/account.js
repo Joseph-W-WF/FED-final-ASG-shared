@@ -55,6 +55,12 @@
     $("userPill").textContent = "User: " + (text || "Guest");
   }
 
+  function setLogoutVisible(isVisible) {
+    var btn = $("btnLogout");
+    if (!btn) return;
+    btn.style.display = isVisible ? "inline-block" : "none";
+  }
+
   function setActiveView(viewId, crumbText) {
     clearNotice();
     document.querySelectorAll(".view").forEach(function (v) {
@@ -87,10 +93,12 @@
     if (!userObjOrNull) {
       localStorage.removeItem(SESSION_USER_KEY);
       setUserPill("Guest");
+      setLogoutVisible(false);
       return;
     }
     localStorage.setItem(SESSION_USER_KEY, JSON.stringify(userObjOrNull));
     setUserPill(userObjOrNull.username || userObjOrNull.id || "User");
+    setLogoutVisible(true);
   }
 
   // ---------------------------
@@ -539,28 +547,18 @@
       showNotice("Logged out.", "ok");
     });
 
-    // Dev: reset DB
-    on("btnResetDB", "click", function () {
-      if (typeof resetDB === "function") {
-        resetDB();
-        setSessionUser(null);
-        setSessionRole("");
-        setRolePill("-");
-        applyRoleRules("");
-        showNotice("DB reset to seed data.", "ok");
-        setActiveView("view-role", "Role");
-      } else {
-        showNotice("resetDB() not found in db.js", "error");
-      }
-    });
-
     // Initial state
     var role = getSessionRole();
     setRolePill(role);
     applyRoleRules(role);
 
     var sessUser = getSessionUser();
-    if (sessUser) setUserPill(sessUser.username || sessUser.id);
+    if (sessUser) {
+      setUserPill(sessUser.username || sessUser.id);
+      setLogoutVisible(true);
+    } else {
+      setLogoutVisible(false);
+    }
 
     setActiveView("view-role", "Role");
   }

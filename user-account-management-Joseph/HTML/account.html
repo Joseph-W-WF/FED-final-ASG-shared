@@ -9,33 +9,29 @@
 
 <body>
   <div class="app-shell">
-    <aside class="sidebar">
-      <div class="brand">
-        <div class="logo"></div>
-        <div>
-          <div class="brand-title">Hawker App</div>
-          <div class="brand-sub">Account</div>
-        </div>
-      </div>
-
-      <nav class="nav">
-        <button class="nav-btn" data-go="view-role">Role</button>
-        <button class="nav-btn" data-go="view-auth">Sign In / Register</button>
-        <button class="nav-btn" data-go="view-recovery" id="navRecoveryBtn">Recovery</button>
-      </nav>
-
-      <div class="sideinfo">
-        <div class="pill" id="rolePill">Role: -</div>
-        <div class="pill" id="userPill">User: Guest</div>
-        <button class="secondary" id="btnLogout">Logout</button>
-      </div>
-    </aside>
-
     <main class="content">
       <header class="topbar">
-        <div class="crumb" id="crumb">Role</div>
-        <div class="top-actions">
-          <button class="secondary" id="btnResetDB" title="Dev only">Reset DB</button>
+        <div class="top-left">
+          <div class="brand-inline">
+            <div class="logo small"></div>
+            <div class="brand-text">
+              <div class="brand-title">Hawker App</div>
+              <div class="brand-sub">Account</div>
+            </div>
+          </div>
+          <div class="crumb" id="crumb">Role</div>
+        </div>
+
+        <nav class="top-nav" aria-label="Account navigation">
+          <button class="nav-btn" data-go="view-role">Role</button>
+          <button class="nav-btn" data-go="view-auth">Sign In / Register</button>
+          <button class="nav-btn" data-go="view-recovery" id="navRecoveryBtn">Recovery</button>
+        </nav>
+
+        <div class="top-right">
+          <div class="pill pill-light" id="rolePill">Role: -</div>
+          <div class="pill pill-light" id="userPill">User: Guest</div>
+          <button class="secondary" id="btnLogout">Logout</button>
         </div>
       </header>
 
@@ -76,7 +72,7 @@
         <div class="view" id="view-auth">
           <h1 id="authTitle">Sign In</h1>
           <p class="muted" id="authSubtitle">Continue.</p>
-
+          
           <div class="row gap">
             <button class="primary" id="btnGoSignin">Sign In</button>
             <button class="secondary" id="btnGoRegister">Register</button>
@@ -113,10 +109,11 @@
             </div>
 
             <!-- We hide this row for Vendor + NEA -->
-            <div class="row" id="registerHintRow">
-              <span class="muted">Don’t have an account?</span>
-              <button type="button" class="link" id="btnToRegister">Register</button>
-            </div>
+            <div class="row hint-row" id="registerHintRow">
+            <span class="muted">Don’t have an account?</span>
+            <button type="button" class="link" id="btnToRegister">Register</button>
+          </div>
+
           </form>
         </div>
 
@@ -149,7 +146,7 @@
               <button class="primary" type="submit">Register</button>
             </div>
 
-            <div class="row">
+            <div class="row hint-row">
               <span class="muted">Already have an account?</span>
               <button type="button" class="link" id="btnToSignin">Sign In</button>
             </div>

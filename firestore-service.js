@@ -34,8 +34,17 @@ export async function getStallById(stallId) {
 ---------------------------- */
 export async function getViolationCatalog() {
   const snap = await getDocs(collection(db, "violationCatalog"));
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  return snap.docs.map((d) => {
+    const data = d.data() || {};
+    return {
+      id: d.id,
+      code: data.code || d.id,
+      title: data.title || data.desc || data.name || "",
+      severityDefault: data.severityDefault || data.severity || "MAJOR",
+    };
+  });
 }
+
 
 export async function addViolationCatalogItem(item) {
   // Use code as doc id if you want stable lookups: doc(db,"violationCatalog", item.code)
@@ -61,12 +70,18 @@ export async function addInspection(inspection) {
 export async function getInspectionsByStall(stallId) {
   const q = query(
     collection(db, "inspections"),
-    where("stallId", "==", stallId),
-    orderBy("conductedDate", "desc")
+    where("stallId", "==", stallId)
+    // ✅ removed orderBy to avoid composite index requirement
   );
+
   const snap = await getDocs(q);
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  const rows = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+
+  // Sort newest first in JS instead
+  rows.sort((a, b) => new Date(b.conductedDate || 0) - new Date(a.conductedDate || 0));
+  return rows;
 }
+
 
 /* ---------------------------
    INSPECTION VIOLATIONS (subcollection)
@@ -98,7 +113,47 @@ export async function addPenalty(penalty) {
 }
 
 export async function getPenaltiesByStall(stallId) {
-  const q = query(collection(db, "penalties"), where("stallId", "==", stallId));
+  const q = query(
+    collection(db, "penalties"),
+    where("stallId", "==", stallId)
+  );
   const snap = await getDocs(q);
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  const rows = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  // optional sort in JS by createdAt if present
+  rows.sort((a, b) => {
+    const da = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdDateTime || 0);
+    const dbb = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(b.createdDateTime || 0);
+    return dbb - da;
+  });
+  return rows;
+}
+
+/* ---------------------------
+   SCHEDULED INSPECTIONS
+---------------------------- */
+export async function addScheduledInspection(item) {
+  const ref = await addDoc(collection(db, "scheduledInspections"), {
+    ...item,
+    status: "scheduled",
+    createdAt: serverTimestamp(),
+  });
+  return ref.id;
+}
+
+export async function getScheduledInspections(status = "scheduled") {
+  const q = query(
+    collection(db, "scheduledInspections"),
+    where("status", "==", status)
+  );
+  const snap = await getDocs(q);
+  const rows = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  rows.sort((a, b) => new Date(a.scheduledDate || 0) - new Date(b.scheduledDate || 0));
+  return rows;
+}
+
+export async function markScheduledCompleted(scheduleId) {
+  await updateDoc(doc(db, "scheduledInspections", scheduleId), {
+    status: "completed",
+    completedAt: serverTimestamp(),
+  });
 }

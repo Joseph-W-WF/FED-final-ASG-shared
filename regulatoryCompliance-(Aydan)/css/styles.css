@@ -280,3 +280,10 @@ button:hover{ background: var(--accent-dark); }
   font-weight: 800;
   color: #111827;
 }
+
+
+/* --- Fix custom violation row layout --- */
+#customViolation { 
+  flex: 1; 
+  min-width: 220px;
+}

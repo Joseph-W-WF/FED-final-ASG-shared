@@ -1,57 +1,71 @@
-document.addEventListener("DOMContentLoaded", function () {
-  var db = loadDB();
+requireNEA();
+
+document.addEventListener("DOMContentLoaded", async function () {
+  var local = loadDB();
 
   var stallSelect = document.getElementById("stallSelect");
-  var scheduledDate = document.getElementById("scheduledDate");
+  var scheduledDateInput = document.getElementById("scheduledDate");
   var scheduleBtn = document.getElementById("scheduleBtn");
   var msg = document.getElementById("msg");
 
-  // Populate stalls
-  stallSelect.innerHTML = (db.stalls || [])
+  // Populate stalls (static from db.js)
+  stallSelect.innerHTML = (local.stalls || [])
     .map(function (s) {
       return '<option value="' + s.id + '">' + s.name + "</option>";
     })
     .join("");
 
   // Default date = today
-  scheduledDate.value = new Date().toISOString().slice(0, 10);
+  scheduledDateInput.value = new Date().toISOString().slice(0, 10);
 
-  scheduleBtn.addEventListener("click", function () {
+  // Ensure Firestore DB API exists
+  if (!window.DB || typeof DB.addScheduledInspection !== "function") {
+    show(
+      "DB not ready. Ensure schedule.html loads firebase.js, firestore-service.js, db-compat.js BEFORE schedule.js.",
+      true
+    );
+    scheduleBtn.disabled = true;
+    return;
+  }
+
+  scheduleBtn.addEventListener("click", async function () {
     var stallId = stallSelect.value;
-    var date = scheduledDate.value;
+    var date = scheduledDateInput.value;
 
     if (!stallId) return show("Please select a stall.", true);
     if (!date) return show("Please choose a date.", true);
 
-    var db = loadDB();
+    try {
+      // Check duplicate schedules in Firestore (status = scheduled)
+      if (typeof DB.getScheduledInspections === "function") {
+        var scheduled = await DB.getScheduledInspections("scheduled");
+        var exists = (scheduled || []).some(function (s) {
+          return s.stallId === stallId && s.scheduledDate === date;
+        });
+        if (exists) {
+          return show(
+            "This stall already has an inspection scheduled on that date.",
+            true
+          );
+        }
+      }
 
-    // Prevent duplicate schedule for same stall + same date
-    var exists = (db.inspections || []).some(function (i) {
-      return i.stallId === stallId && i.scheduledDate === date;
-    });
-    if (exists) return show("This stall already has an inspection scheduled on that date.", true);
+      // Save schedule into Firestore
+      await DB.addScheduledInspection({
+        stallId: stallId,
+        scheduledDate: date, // YYYY-MM-DD
+        officerId: "nea1",
+      });
 
-    var newInsp = {
-      id: makeId("insp"),
-      stallId: stallId,
-      officerId: "nea1",
-      scheduledDate: date,
-
-      // not logged yet
-      conductedDate: null,
-      score: null,
-      grade: null,
-      remarks: ""
-    };
-
-    db.inspections = db.inspections || [];
-    db.inspections.push(newInsp);
-    saveDB(db);
-
-    show("✅ Inspection scheduled successfully.", false);
+      show("✅ Inspection scheduled successfully.", false);
+    } catch (err) {
+      console.error(err);
+      show("❌ Failed to schedule: " + (err?.message || err), true);
+    }
   });
 
   function show(text, isError) {
+    if (!msg) return;
     msg.textContent = text;
     msg.style.color = isError ? "#b00020" : "#1b5e20";
   }

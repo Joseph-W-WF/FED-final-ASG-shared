@@ -8,6 +8,8 @@ var expiryList = document.getElementById("expiryList");
 var penaltiesList = document.getElementById("penaltiesList");
 
 renderDashboard();
+renderKPIs();
+
 
 function renderDashboard() {
   db = loadDB();
@@ -195,5 +197,43 @@ function countCriticalViolationsDays(stallId, days) {
 function stallName(stallId) {
   for (var i = 0; i < db.stalls.length; i++) if (db.stalls[i].id === stallId) return db.stalls[i].name;
   return stallId;
+}
+function renderKPIs() {
+  db = loadDB();
+
+  var inspEl = document.getElementById("kpiInspections");
+  var avgEl = document.getElementById("kpiAvgScore");
+  var expEl = document.getElementById("kpiExpiring");
+  var penEl = document.getElementById("kpiPenalties");
+
+  var inspections = db.inspections || [];
+  var penalties = db.penalties || [];
+
+  // total inspections
+  if (inspEl) inspEl.textContent = inspections.length;
+
+  // average score
+  var total = 0;
+  var count = 0;
+  for (var i = 0; i < inspections.length; i++) {
+    if (typeof inspections[i].score === "number") {
+      total += inspections[i].score;
+      count++;
+    }
+  }
+  var avg = count === 0 ? "-" : (total / count).toFixed(1);
+  if (avgEl) avgEl.textContent = avg;
+
+  // expiring within 30 days (same logic as expiry list)
+  var expiringCount = 0;
+  for (var j = 0; j < db.stalls.length; j++) {
+    var last = getLastGradeEntry(db.stalls[j]);
+    if (!last) continue;
+    if (isExpiringSoon(last.expiryDate, 30)) expiringCount++;
+  }
+  if (expEl) expEl.textContent = expiringCount;
+
+  // total penalties
+  if (penEl) penEl.textContent = penalties.length;
 }
 

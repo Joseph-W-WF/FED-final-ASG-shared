@@ -1,137 +1,213 @@
-requireNEA();
+document.addEventListener("DOMContentLoaded", function () {
+  var db = loadDB();
 
-var db = loadDB();
-var select = document.getElementById("stallSelect");
-var historyDiv = document.getElementById("historyTable");
-var chart = null;
+  var stallSelect = document.getElementById("stallSelect");
+  var historyTable = document.getElementById("historyTable");
 
-// dropdown
-for (var i = 0; i < db.stalls.length; i++) {
-  var o = document.createElement("option");
-  o.value = db.stalls[i].id;
-  o.textContent = db.stalls[i].name;
-  select.appendChild(o);
-}
+  var gradeChartInstance = null;
+  var scoreChartInstance = null;
 
-select.addEventListener("change", render);
-render();
+  // Populate dropdown
+  stallSelect.innerHTML = (db.stalls || [])
+    .map(function (s) {
+      return '<option value="' + s.id + '">' + s.name + "</option>";
+    })
+    .join("");
 
-function render() {
-  db = loadDB();
+  if ((db.stalls || []).length > 0) stallSelect.value = db.stalls[0].id;
 
-  var stall = null;
-  for (var i = 0; i < db.stalls.length; i++) {
-    if (db.stalls[i].id === select.value) stall = db.stalls[i];
-  }
-  if (!stall) return;
+  renderAll();
+  stallSelect.addEventListener("change", renderAll);
 
-  var history = stall.gradeHistory || [];
-
-  renderMonthlyChart(history);
-  renderHistoryTable(history);
-}
-
-function renderMonthlyChart(history) {
-  // month bucket: YYYY-MM -> last grade value in that month
-  var monthMap = {}; // { "2026-02": {value:3, label:"Feb 2026"} }
-
-  for (var i = 0; i < history.length; i++) {
-    var d = history[i].date;
-    if (!d) continue;
-
-    var ym = d.slice(0, 7);
-    monthMap[ym] = { value: gradeToValue(history[i].grade), label: monthLabel(ym) };
+  function renderAll() {
+    var stallId = stallSelect.value;
+    renderHistoryTable(stallId);
+    renderMonthlyCharts(stallId);
   }
 
-  var months = [];
-  for (var key in monthMap) months.push(key);
-  months.sort();
+  // -----------------------
+  // History table (WITH violations)
+  // -----------------------
+  function renderHistoryTable(stallId) {
+    var db = loadDB();
+    var stall = (db.stalls || []).find(function (s) { return s.id === stallId; });
 
-  var labels = [];
-  var values = [];
-  for (var j = 0; j < months.length; j++) {
-    labels.push(monthMap[months[j]].label);
-    values.push(monthMap[months[j]].value);
+    var history = (stall && stall.gradeHistory) ? stall.gradeHistory.slice() : [];
+    history.sort(function (a, b) { return new Date(b.date) - new Date(a.date); });
+
+    // Build violations map: inspectionId -> violations
+    var vioByInspection = {};
+    (db.inspectionViolations || []).forEach(function (v) {
+      if (!vioByInspection[v.inspectionId]) vioByInspection[v.inspectionId] = [];
+      vioByInspection[v.inspectionId].push(v);
+    });
+
+    // Find inspectionId by conductedDate+stallId (best-effort)
+    function findInspectionId(stallId, dateStr) {
+      var list = db.inspections || [];
+      for (var i = 0; i < list.length; i++) {
+        var ins = list[i];
+        if (ins.stallId === stallId && ins.conductedDate === dateStr) return ins.id;
+      }
+      return null;
+    }
+
+    var rows = history.map(function (h) {
+      var inspId = findInspectionId(stallId, h.date);
+      var vios = inspId ? (vioByInspection[inspId] || []) : [];
+      var vioText = vios.length
+        ? vios.map(function (v) { return v.code + " (" + v.severity + ")"; }).join(", ")
+        : "None";
+
+      return (
+        "<tr>" +
+          "<td>" + h.date + "</td>" +
+          "<td>" + (h.score != null ? h.score : "-") + "</td>" +
+          "<td><strong>" + (h.grade || "-") + "</strong></td>" +
+          "<td>" + (h.expiryDate || "-") + "</td>" +
+          "<td>" + vioText + "</td>" +
+        "</tr>"
+      );
+    });
+
+    historyTable.innerHTML =
+      '<table class="table">' +
+        "<thead>" +
+          "<tr>" +
+            "<th>Date</th>" +
+            "<th>Score</th>" +
+            "<th>Grade</th>" +
+            "<th>Expiry Date</th>" +
+            "<th>Violations</th>" +
+          "</tr>" +
+        "</thead>" +
+        "<tbody>" + rows.join("") + "</tbody>" +
+      "</table>";
   }
 
-  if (chart) chart.destroy();
+  // -----------------------
+  // Monthly charts (Grade + Score)
+  // -----------------------
+  function renderMonthlyCharts(stallId) {
+    var db = loadDB();
+    var stall = (db.stalls || []).find(function (s) { return s.id === stallId; });
+    var history = (stall && stall.gradeHistory) ? stall.gradeHistory.slice() : [];
 
-  chart = new Chart(document.getElementById("chart"), {
-    type: "line",
-    data: {
-      labels: labels,
-      datasets: [{ label: "Grade Trend (Monthly)", data: values }]
-    },
-    options: {
-      scales: {
-        y: {
-          min: 1, max: 4,
-          ticks: {
-            stepSize: 1,
-            callback: function(v){
-              if (v === 4) return "A";
-              if (v === 3) return "B";
-              if (v === 2) return "C";
-              return "D";
+    // last 12 months including current month
+    var months = buildLast12Months();
+
+    // For each month, pick latest entry in that month
+    var monthToLatest = {};
+    history.forEach(function (h) {
+      var ym = (h.date || "").slice(0, 7); // YYYY-MM
+      if (!ym) return;
+
+      if (!monthToLatest[ym]) {
+        monthToLatest[ym] = h;
+      } else {
+        if (new Date(h.date) > new Date(monthToLatest[ym].date)) monthToLatest[ym] = h;
+      }
+    });
+
+    var gradeMap = { A: 4, B: 3, C: 2, D: 1 };
+
+    var gradePoints = months.map(function (m) {
+      var ym = m.ym;
+      var h = monthToLatest[ym];
+      if (!h || !h.grade) return null;
+      return gradeMap[h.grade] || null;
+    });
+
+    var scorePoints = months.map(function (m) {
+      var ym = m.ym;
+      var h = monthToLatest[ym];
+      if (!h || h.score == null) return null;
+      return Number(h.score);
+    });
+
+    var labels = months.map(function (m) { return m.label; });
+
+    // ----- Grade chart -----
+    var gradeCanvas = document.getElementById("gradeChart");
+    if (!gradeCanvas) return;
+
+    if (gradeChartInstance) gradeChartInstance.destroy();
+
+    gradeChartInstance = new Chart(gradeCanvas.getContext("2d"), {
+      type: "line",
+      data: {
+        labels: labels,
+        datasets: [
+          {
+            label: "Grade Trend (Monthly)",
+            data: gradePoints,
+            tension: 0.25,
+            spanGaps: true
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { display: true } },
+        scales: {
+          y: {
+            min: 1,
+            max: 4,
+            ticks: {
+              stepSize: 1,
+              callback: function (v) {
+                if (v === 4) return "A";
+                if (v === 3) return "B";
+                if (v === 2) return "C";
+                if (v === 1) return "D";
+                return v;
+              }
             }
           }
         }
       }
+    });
+
+    // ----- Score chart -----
+    var scoreCanvas = document.getElementById("scoreChart");
+    if (!scoreCanvas) return;
+
+    if (scoreChartInstance) scoreChartInstance.destroy();
+
+    scoreChartInstance = new Chart(scoreCanvas.getContext("2d"), {
+      type: "line",
+      data: {
+        labels: labels,
+        datasets: [
+          {
+            label: "Inspection Score (Monthly)",
+            data: scorePoints,
+            tension: 0.25,
+            spanGaps: true
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { display: true } },
+        scales: {
+          y: { min: 0, max: 100 }
+        }
+      }
+    });
+  }
+
+  function buildLast12Months() {
+    var out = [];
+    var d = new Date();
+    d.setDate(1);
+
+    for (var i = 11; i >= 0; i--) {
+      var x = new Date(d.getFullYear(), d.getMonth() - i, 1);
+      var ym = x.toISOString().slice(0, 7);
+      var label = x.toLocaleDateString("en-SG", { month: "short", year: "numeric" });
+      out.push({ ym: ym, label: label });
     }
-  });
-}
-
-function renderHistoryTable(history) {
-  if (history.length === 0) {
-    historyDiv.innerHTML = "<p class='small'>No inspection history yet.</p>";
-    return;
+    return out;
   }
-
-  // newest first
-  var copy = history.slice();
-  copy.sort(function(a,b){ return new Date(b.date) - new Date(a.date); });
-
-  var html = "<table class='table'><thead><tr>" +
-    "<th>Date</th><th>Score</th><th>Grade</th><th>Expiry Date</th>" +
-    "</tr></thead><tbody>";
-
-  for (var i = 0; i < copy.length; i++) {
-    html += "<tr>" +
-      "<td>" + copy[i].date + "</td>" +
-      "<td>" + (copy[i].score != null ? copy[i].score : "-") + "</td>" +
-      "<td><strong>" + copy[i].grade + "</strong></td>" +
-      "<td>" + (copy[i].expiryDate || "-") + "</td>" +
-      "</tr>";
-  }
-
-  html += "</tbody></table>";
-  historyDiv.innerHTML = html;
-}
-
-function gradeToValue(g) {
-  if (g === "A") return 4;
-  if (g === "B") return 3;
-  if (g === "C") return 2;
-  return 1;
-}
-
-function monthLabel(ym) {
-  var year = ym.slice(0, 4);
-  var month = ym.slice(5, 7);
-
-  var name = "Month";
-  if (month === "01") name = "Jan";
-  else if (month === "02") name = "Feb";
-  else if (month === "03") name = "Mar";
-  else if (month === "04") name = "Apr";
-  else if (month === "05") name = "May";
-  else if (month === "06") name = "Jun";
-  else if (month === "07") name = "Jul";
-  else if (month === "08") name = "Aug";
-  else if (month === "09") name = "Sep";
-  else if (month === "10") name = "Oct";
-  else if (month === "11") name = "Nov";
-  else if (month === "12") name = "Dec";
-
-  return name + " " + year;
-}
+});

@@ -45,6 +45,8 @@ a { color: inherit; }
   padding: 18px 14px;
   gap: 14px;
   z-index: 60;
+  transform: translateX(0);
+  transition: transform 0.2s ease;
 }
 
 .sidenav__top{
@@ -75,7 +77,9 @@ a { color: inherit; }
   color: #6b7280;
   padding: 6px 8px;
   border-radius: 10px;
-  display: none; /* only show on small screens */
+  display: inline-flex; /* show on desktop too (collapsible sidebar) */
+  align-items: center;
+  justify-content: center;
 }
 .sidenav__close:hover{ background: rgba(17,24,39,0.06); }
 
@@ -142,8 +146,18 @@ a { color: inherit; }
 .mainArea{
   margin-left: 290px;
   min-height: 100vh;
+  transition: margin-left 0.2s ease;
 }
 
+/* Desktop: allow sidebar to be collapsed/expanded (like your friend's) */
+body.sidenav-collapsed .mainArea{ margin-left: 0; }
+body.sidenav-collapsed .sidenav{ transform: translateX(-110%); }
+body.sidenav-collapsed .iconBtn{ display: inline-grid; }
+/* Ensure "open" wins even if desktop state is collapsed */
+.sidenav.is-open{ transform: translateX(0) !important; }
+
+/* Hide floating open button when the sidenav is open (mobile drawer) */
+.sidenav.is-open ~ .mainArea .iconBtn{ opacity: 0; pointer-events: none; }
 
 /* Topbar */
 .topbar{
@@ -154,6 +168,7 @@ a { color: inherit; }
   border-bottom: 1px solid rgba(255,255,255,0.15);
 }
 .topbar__inner{
+  position: relative;
   height: 86px;
   padding: 0 26px;
   display: flex;
@@ -167,16 +182,36 @@ a { color: inherit; }
   gap: 14px;
 }
 .iconBtn{
-  width: 46px;
-  height: 46px;
+  width: 60px;
+  height: 60px;
   border-radius: 999px;
-  border: 1px solid rgba(255,255,255,0.22);
-  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.30);
+  background: rgba(255,255,255,0.10);
   color: #fff;
-  font-size: 20px;
-  display: none; /* mobile only */
+  font-size: 22px;
+  display: none; /* shown on mobile + when desktop sidenav collapsed */
+  position: absolute;
+  left: 16px;
+  top: 16px;
+  z-index: 60;
+  cursor: pointer;
+  backdrop-filter: blur(12px) saturate(150%);
+  -webkit-backdrop-filter: blur(12px) saturate(150%);
+  box-shadow: 0 10px 28px rgba(0,0,0,0.18);
+  place-items: center;
+  transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease;
 }
-.iconBtn:hover{ background: rgba(255,255,255,0.12); }
+
+.iconBtn:hover{
+  background: rgba(255,255,255,0.18);
+  border-color: rgba(255,255,255,0.45);
+  transform: translateY(-1px) scale(1.02);
+}
+.iconBtn:active{ transform: translateY(0) scale(0.99); }
+.iconBtn:focus-visible{
+  outline: 2px solid rgba(255,255,255,0.55);
+  outline-offset: 2px;
+}
 .brand{ color: #fff; }
 .brand__title{ font-weight: 800; font-size: 26px; letter-spacing: 0.2px; }
 .brand__subtitle{ margin-top: 2px; font-size: 13px; opacity: 0.9; }
@@ -727,7 +762,7 @@ a { color: inherit; }
 /* Responsive */ 
 @media (max-width: 980px){
   .mainArea{ margin-left: 0; }
-  .iconBtn{ display: inline-grid; place-items: center; }
+  .iconBtn{ display: inline-grid; place-items: center; left: 14px; top: 14px; }
   .sidenav{
     transform: translateX(-110%);
     transition: transform 0.2s ease;

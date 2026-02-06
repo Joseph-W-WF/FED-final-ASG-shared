@@ -62,21 +62,22 @@ function createSeedDB() {
   // Orders (vendor demo data)
   // -----------------------------
   const yourOrders = [
-    { id: 1, item: "Laksa", price: 5.5, date: "2026-01-20T20:30:00", stall: "Clemens Kitchen", status: "Collected", quantity: 1, orderNumber: "ORD001", paymentMethod: "PayNow", customerName: "Alicia Tan" },
-    { id: 2, item: "Prata", price: 2.6, date: "2026-01-18T19:15:00", stall: "Indian Corner", status: "Collected", quantity: 2, orderNumber: "ORD002", paymentMethod: "Cash", customerName: "Darren Lim" },
-    { id: 3, item: "Carbonara", price: 6.5, date: "2026-01-15T20:25:00", stall: "Pasta Place", status: "Collected", quantity: 1, orderNumber: "ORD003", paymentMethod: "NETS", customerName: "Jia Wei" },
-    { id: 4, item: "Nasi Lemak", price: 5.0, date: "2026-01-22T12:00:00", stall: "Malay Delights", status: "active", quantity: 1, orderNumber: "ORD004", paymentMethod: "PayNow", customerName: "Nur Aisyah" },
-    { id: 5, item: "Laksa", price: 5.5, date: "2026-01-10T18:30:00", stall: "Peranakan Kitchen", status: "cancelled", quantity: 1, orderNumber: "ORD005", paymentMethod: "Cash", customerName: "Ryan Goh" },
-    { id: 6, item: "Mushroom soup", price: 4.5, date: "2026-02-02T13:10:00", stall: "Clemens Kitchen", status: "Collected", quantity: 1, orderNumber: "ORD006", paymentMethod: "NETS", customerName: "Alicia Tan" },
-    { id: 7, item: "Fish soup", price: 4.5, date: "2026-02-10T19:40:00", stall: "Clemens Kitchen", status: "Collected", quantity: 1, orderNumber: "ORD007", paymentMethod: "PayNow", customerName: "Darren Lim" },
-    { id: 8, item: "Chicken Rice Set", price: 8.8, date: "2026-03-05T12:25:00", stall: "Clemens Kitchen", status: "Collected", quantity: 1, orderNumber: "ORD008", paymentMethod: "Cash", customerName: "Alicia Tan" },
-    { id: 9, item: "Chicken Rice", price: 6.6, date: "2026-03-16T18:05:00", stall: "Clemens Kitchen", status: "Collected", quantity: 1, orderNumber: "ORD009", paymentMethod: "NETS", customerName: "Nur Aisyah" },
-    { id: 10, item: "Chicken Rice", price: 6.6, date: "2026-04-01T11:50:00", stall: "Clemens Kitchen", status: "Collected", quantity: 1, orderNumber: "ORD010", paymentMethod: "PayNow", customerName: "Ryan Goh" },
-    { id: 11, item: "Fish soup", price: 4.5, date: "2026-04-18T20:15:00", stall: "Clemens Kitchen", status: "active", quantity: 1, orderNumber: "ORD011", paymentMethod: "NETS", customerName: "Darren Lim" },
-    { id: 12, item: "Chicken Rice", price: 6.6, date: "2026-05-08T12:40:00", stall: "Clemens Kitchen", status: "cancelled", quantity: 1, orderNumber: "ORD012", paymentMethod: "Cash", customerName: "Jia Wei" },
-    { id: 13, item: "Fish soup", price: 6.6, date: "2026-06-14T19:00:00", stall: "Clemens Kitchen", status: "cancelled", quantity: 1, orderNumber: "ORD013", paymentMethod: "Cash", customerName: "Ryan Goh" },
-    { id: 14, item: "Chicken Rice Set", price: 8.8, date: "2026-06-25T13:30:00", stall: "Clemens Kitchen", status: "active", quantity: 1, orderNumber: "ORD014", paymentMethod: "PayNow", customerName: "Alicia Tan" },
-    { id: 15, item: "Mushroom soup", price: 4.5, date: "2026-02-03T10:20:00", stall: "Clemens Kitchen", status: "active", quantity: 1, orderNumber: "ORD015", paymentMethod: "PayNow", customerName: "Zhi Hao" },
+    { id: 1, item: "Chicken Rice", price: 5.5, date: "2026-01-20T12:10:00", stall: "Clemens Kitchen", status: "active", quantity: 1, orderNumber: "ORD001", paymentMethod: "PayNow", customerName: "Alicia Tan" },
+    { id: 2, item: "Fish soup", price: 4.5, date: "2026-01-20T12:18:00", stall: "Clemens Kitchen", status: "Collected", quantity: 1, orderNumber: "ORD002", paymentMethod: "Cash", customerName: "Darren Lim" },
+    { id: 3, item: "Mushroom soup", price: 4.5, date: "2026-01-21T18:45:00", stall: "Clemens Kitchen", status: "Collected", quantity: 1, orderNumber: "ORD003", paymentMethod: "NETS", customerName: "Jia Wei" },
+    { id: 4, item: "Chicken Rice Set", price: 8.8, date: "2026-01-22T19:05:00", stall: "Clemens Kitchen", status: "cancelled", quantity: 1, orderNumber: "ORD004", paymentMethod: "Cash", customerName: "Ryan Goh" },
+
+    { id: 5, item: "Prata", price: 2.6, date: "2026-02-01T09:40:00", stall: "Indian Corner", status: "Collected", quantity: 2, orderNumber: "ORD005", paymentMethod: "PayNow", customerName: "Nur Aisyah" },
+    { id: 6, item: "Teh Tarik", price: 1.8, date: "2026-02-01T09:42:00", stall: "Indian Corner", status: "Collected", quantity: 1, orderNumber: "ORD006", paymentMethod: "Cash", customerName: "Nur Aisyah" },
+
+    { id: 7, item: "Carbonara", price: 6.5, date: "2026-02-05T13:20:00", stall: "Pasta Place", status: "Collected", quantity: 1, orderNumber: "ORD007", paymentMethod: "NETS", customerName: "Zhi Hao" },
+    { id: 8, item: "Aglio Olio", price: 6.0, date: "2026-02-05T13:24:00", stall: "Pasta Place", status: "active", quantity: 1, orderNumber: "ORD008", paymentMethod: "PayNow", customerName: "Zhi Hao" },
+
+    { id: 9, item: "Nasi Lemak", price: 5.0, date: "2026-02-10T12:00:00", stall: "Malay Delights", status: "active", quantity: 1, orderNumber: "ORD009", paymentMethod: "PayNow", customerName: "Alicia Tan" },
+    { id: 10, item: "Mee Rebus", price: 4.8, date: "2026-02-10T12:05:00", stall: "Malay Delights", status: "Collected", quantity: 1, orderNumber: "ORD010", paymentMethod: "NETS", customerName: "Darren Lim" },
+
+    { id: 11, item: "Laksa", price: 5.5, date: "2026-02-14T18:30:00", stall: "Peranakan Kitchen", status: "Collected", quantity: 1, orderNumber: "ORD011", paymentMethod: "PayNow", customerName: "Jia Wei" },
+    { id: 12, item: "Ondeh Ondeh (3pcs)", price: 2.5, date: "2026-02-14T18:33:00", stall: "Peranakan Kitchen", status: "Collected", quantity: 2, orderNumber: "ORD012", paymentMethod: "Cash", customerName: "Jia Wei" },
   ];
 
   const statusMap = (s) => {
@@ -104,6 +105,8 @@ function createSeedDB() {
     { id: "cu3", name: "Indian" },
     { id: "cu4", name: "Western" },
     { id: "cu5", name: "Peranakan" },
+    { id: "cu6", name: "Drinks" },
+    { id: "cu7", name: "Dessert" },
   ];
 
   const cuisineNameToId = {};
@@ -111,13 +114,21 @@ function createSeedDB() {
 
   const simpleMenu = [
     { name: "Chicken Rice", cuisines: ["Chinese", "Malay"], price: 5.5 },
-    { name: "Nasi Lemak", cuisines: ["Malay"], price: 5.0 },
-    { name: "Carbonara", cuisines: ["Western"], price: 6.5 },
-    { name: "Prata", cuisines: ["Indian"], price: 2.6 },
     { name: "Fish soup", cuisines: ["Chinese"], price: 4.5 },
     { name: "Mushroom soup", cuisines: ["Western"], price: 4.5 },
-    { name: "Laksa", cuisines: ["Peranakan"], price: 5.5 },
     { name: "Chicken Rice Set", cuisines: ["Chinese", "Malay"], price: 8.8 },
+
+    { name: "Prata", cuisines: ["Indian"], price: 2.6 },
+    { name: "Teh Tarik", cuisines: ["Drinks"], price: 1.8 },
+
+    { name: "Carbonara", cuisines: ["Western"], price: 6.5 },
+    { name: "Aglio Olio", cuisines: ["Western"], price: 6.0 },
+
+    { name: "Nasi Lemak", cuisines: ["Malay"], price: 5.0 },
+    { name: "Mee Rebus", cuisines: ["Malay"], price: 4.8 },
+
+    { name: "Laksa", cuisines: ["Peranakan"], price: 5.5 },
+    { name: "Ondeh Ondeh (3pcs)", cuisines: ["Dessert"], price: 2.5 },
   ];
 
   // map item->stall using your orders (first occurrence)

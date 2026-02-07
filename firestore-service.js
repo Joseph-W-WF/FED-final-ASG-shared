@@ -118,6 +118,15 @@ export async function addInspectionViolations(inspectionId, violations) {
   await Promise.all(batchWrites);
 }
 
+export async function getInspectionViolations(inspectionId) {
+  const q = query(
+    collection(db, "inspectionViolations"),
+    where("inspectionId", "==", inspectionId)
+  );
+  const snap = await getDocs(q);
+  return mapDocs(snap);
+}
+
 /* -------------------- Penalties -------------------- */
 export async function getPenaltiesByStallId(stallId) {
   const q = query(collection(db, "penalties"), where("stallId", "==", stallId));
@@ -143,6 +152,7 @@ export async function getScheduledInspectionsByStallId(stallId) {
 export async function addScheduledInspection(sched) {
   const docRef = await addDoc(collection(db, "scheduledInspections"), {
     ...sched,
+    status: (sched && sched.status) ? sched.status : "scheduled",
     createdAt: serverTimestamp(),
   });
   return docRef.id;
@@ -157,6 +167,35 @@ export async function updateScheduledInspection(id, data) {
 
 export async function deleteScheduledInspection(id) {
   await deleteDoc(doc(db, "scheduledInspections", id));
+}
+
+// Convenience: list scheduled inspections, optionally filtered by status ("scheduled" | "completed")
+export async function getScheduledInspections(status = null) {
+  const snap = await getDocs(collection(db, "scheduledInspections"));
+  let rows = mapDocs(snap).map((x) => ({
+    ...x,
+    status: x.status || "scheduled",
+  }));
+
+  if (status) {
+    const s = String(status).toLowerCase();
+    rows = rows.filter((r) => String(r.status || "scheduled").toLowerCase() === s);
+  }
+
+  // Sort by scheduledDate (YYYY-MM-DD string) then createdAt
+  rows.sort((a, b) =>
+    String(a.scheduledDate || "").localeCompare(String(b.scheduledDate || ""))
+  );
+  return rows;
+}
+
+// Convenience: mark a scheduled inspection as completed
+export async function markScheduledCompleted(scheduleId) {
+  await updateDoc(doc(db, "scheduledInspections", scheduleId), {
+    status: "completed",
+    completedAt: serverTimestamp(),
+  });
+  return true;
 }
 
 /* =========================================================
@@ -590,3 +629,4 @@ export async function markPasswordResetUsed(resetId) {
     usedAt: serverTimestamp(),
   });
 }
+

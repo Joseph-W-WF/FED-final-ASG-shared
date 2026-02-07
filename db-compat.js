@@ -13,6 +13,10 @@ window.DB.updateViolationCatalogItem = FS.updateViolationCatalogItem;
 window.DB.deleteViolationCatalogItem = FS.deleteViolationCatalogItem;
 
 window.DB.getInspectionsByStallId = FS.getInspectionsByStallId;
+
+window.DB.getInspectionsByStall = FS.getInspectionsByStallId;
+window.DB.getPenaltiesByStall = FS.getPenaltiesByStallId;
+window.DB.getInspectionViolations = FS.getInspectionViolations;
 window.DB.addInspection = FS.addInspection;
 window.DB.updateInspection = FS.updateInspection;
 window.DB.deleteInspection = FS.deleteInspection;

@@ -3,6 +3,8 @@
 */
 
 (function () {
+  "use strict";
+
   // ---------------------------
   // Simple session keys
   // ---------------------------
@@ -27,8 +29,10 @@
 
   function showNotice(msg, type) {
     var n = $("notice");
+    if (!n) return;
+
     n.style.display = "block";
-    n.textContent = msg;
+    n.textContent = (msg == null ? "" : String(msg));
 
     n.style.borderColor =
       (type === "error") ? "rgba(239,68,68,0.5)" :
@@ -38,21 +42,26 @@
 
   function clearNotice() {
     var n = $("notice");
+    if (!n) return;
+
     n.style.display = "none";
     n.textContent = "";
     n.style.borderColor = "rgba(229,231,235,1)";
   }
 
   function setCrumb(text) {
-    $("crumb").textContent = text;
+    var el = $("crumb");
+    if (el) el.textContent = text;
   }
 
   function setRolePill(role) {
-    $("rolePill").textContent = "Role: " + (role || "-");
+    var el = $("rolePill");
+    if (el) el.textContent = "Role: " + (role || "-");
   }
 
   function setUserPill(text) {
-    $("userPill").textContent = "User: " + (text || "Guest");
+    var el = $("userPill");
+    if (el) el.textContent = "User: " + (text || "Guest");
   }
 
   function setLogoutVisible(isVisible) {
@@ -72,6 +81,25 @@
   }
 
   // ---------------------------
+  // Safe DB helpers (prevents crashes if db.js shape is missing)
+  // ---------------------------
+  function makeIdSafe(prefix) {
+    if (typeof makeId === "function") return makeId(prefix);
+    return (prefix || "id") + "_" + Math.random().toString(36).slice(2, 10);
+  }
+
+  function loadDBSafe() {
+    var db = (typeof loadDB === "function" ? loadDB() : null) || {};
+    if (!Array.isArray(db.users)) db.users = [];
+    if (!Array.isArray(db.passwordResets)) db.passwordResets = [];
+    return db;
+  }
+
+  function saveDBSafe(db) {
+    if (typeof saveDB === "function") saveDB(db);
+  }
+
+  // ---------------------------
   // Session
   // ---------------------------
   function getSessionRole() {
@@ -86,7 +114,7 @@
   function getSessionUser() {
     var raw = localStorage.getItem(SESSION_USER_KEY);
     if (!raw) return null;
-    try { return JSON.parse(raw); } catch { return null; }
+    try { return JSON.parse(raw); } catch (e) { return null; }
   }
 
   function setSessionUser(userObjOrNull) {
@@ -147,6 +175,7 @@
 
   function isEmail(s) {
     s = normalize(s);
+    // simple but safe enough for this project
     return s.includes("@") && s.includes(".");
   }
 
@@ -155,99 +184,204 @@
     return /^\d{8}$/.test(s);
   }
 
-  // Firestore wrappers 
-function hasRemoteUsers() {
-  return !!(window.DB?.users?.getByCredential && window.DB?.users?.create);
-}
-
-async function loginAsync(role, usernameOrEmailOrPhone, password, neaId) {
-  if (!hasRemoteUsers()) return login(role, usernameOrEmailOrPhone, password, neaId);
-
-  let user = null;
-
-  if (role === "NEA") {
-    if (!neaId) return { ok: false, msg: "NEA ID is required." };
-    user = await window.DB.users.getNeaUser(neaId, usernameOrEmailOrPhone);
-  } else {
-    user = await window.DB.users.getByCredential(usernameOrEmailOrPhone, role);
+  // ---------------------------
+  // Firestore bridge helpers (works even if your DB mapping differs)
+  // ---------------------------
+  function getRemoteUsersApi() {
+    var u = window.DB && window.DB.users ? window.DB.users : null;
+    return {
+      getByCredential: (u && u.getByCredential) || (window.DB && window.DB.getUserByCredential) || null,
+      getByUsernameLower: (u && u.getByUsernameLower) || (window.DB && window.DB.getUserByUsernameLower) || null,
+      getNeaUser: (u && u.getNeaUser) || (window.DB && window.DB.getNeaUser) || null,
+      create: (u && u.create) || (window.DB && window.DB.createUser) || null,
+      updatePassword: (u && u.updatePassword) || (window.DB && window.DB.updateUserPassword) || null
+    };
   }
 
-  if (!user) return { ok: false, msg: "Account not found." };
-  if ((user.password || "") !== password) return { ok: false, msg: "Incorrect password." };
-
-  setSessionUser({ id: user.id, role: user.role, username: user.username || user.email || user.phone || user.id });
-  return { ok: true, user };
-}
-
-async function registerCustomerAsync(fullName, email, phone, password) {
-  if (!hasRemoteUsers()) return registerAccount("CUSTOMER", fullName, email, phone, password);
-
-  // re-use your existing validations
-  if (!fullName || fullName.trim().length < 2) return { ok: false, msg: "Full name is required." };
-  if (!isEmail(email)) return { ok: false, msg: "Invalid email." };
-  if (!isPhone(phone)) return { ok: false, msg: "Invalid phone number." };
-  if (!password || password.length < 6) return { ok: false, msg: "Password must be at least 6 chars." };
-
-  // prevent duplicates (email/phone)
-  const existsEmail = await window.DB.users.getByCredential(email, "CUSTOMER");
-  const existsPhone = await window.DB.users.getByCredential(phone, "CUSTOMER");
-  if (existsEmail || existsPhone) return { ok: false, msg: "Email/phone already used." };
-
-  // username generation (ensure unique)
-  const base = (email.split("@")[0] || "user").replace(/[^a-z0-9]/gi, "").slice(0, 12) || "user";
-  let username = base;
-  let i = 1;
-  while (await window.DB.users.getByUsernameLower(username.toLowerCase())) {
-    username = `${base}${i++}`;
+  function getRemoteResetsApi() {
+    var pr = window.DB && window.DB.passwordResets ? window.DB.passwordResets : null;
+    return {
+      create: (pr && pr.create) || (window.DB && window.DB.createPasswordReset) || null,
+      getById: (pr && pr.getById) || (window.DB && window.DB.getPasswordResetById) || null,
+      markUsed: (pr && pr.markUsed) || (window.DB && window.DB.markPasswordResetUsed) || null
+    };
   }
 
-  const user = {
-    id: makeId("c"),
-    role: "CUSTOMER",
-    fullName: fullName.trim(),
-    email: email.trim(),
-    phone: phone.trim(),
-    username,
-    password,
-  };
-
-  await window.DB.users.create(user);
-
-  // keep your local DB too (so nothing breaks)
-  const local = loadDB();
-  local.users.push(user);
-  saveDB(local);
-
-  return { ok: true, user };
-}
-
-async function requestOtpAsync(mode, value) {
-  // mode: "email" or "phone"
-  if (!window.DB?.passwordResets?.create || !hasRemoteUsers()) return requestOtp(mode, value);
-
-  const user = await window.DB.users.getByCredential(value, "CUSTOMER");
-  if (!user) return { ok: false, msg: "No matching customer account." };
-
-  const otp = String(Math.floor(100000 + Math.random() * 900000));
-  const expiresAt = Date.now() + 5 * 60 * 1000;
-
-  const resetId = await window.DB.passwordResets.create({
-    userId: user.id,
-    mode,
-    token: otp,
-    expiresAt,
-  });
-
-  // keep your existing recoveryState usage
-  recoveryState = { userId: user.id, resetId, otp, expiresAt, verified: false };
-  return { ok: true, otp };
-}
+  function hasRemoteUsers() {
+    var api = getRemoteUsersApi();
+    return !!(api.getByCredential && api.create);
+  }
 
   // ---------------------------
-  // DB helpers
+  // Firestore wrappers (no UI/flow change; fallback to local)
+  // ---------------------------
+  async function loginAsync(role, usernameOrEmailOrPhone, password, neaId) {
+    // fallback if no remote users API
+    if (!hasRemoteUsers()) return login(role, usernameOrEmailOrPhone, password, neaId);
+
+    var api = getRemoteUsersApi();
+    var user = null;
+
+    usernameOrEmailOrPhone = normalize(usernameOrEmailOrPhone);
+    password = normalize(password);
+    neaId = normalize(neaId);
+
+    if (!role) return { ok: false, msg: "Choose a role first." };
+
+    if (role === "NEA") {
+      if (!neaId) return { ok: false, msg: "NEA ID is required." };
+      if (!usernameOrEmailOrPhone) return { ok: false, msg: "Username is required." };
+      if (!password) return { ok: false, msg: "Password is required." };
+
+      if (!api.getNeaUser) return login(role, usernameOrEmailOrPhone, password, neaId);
+      user = await api.getNeaUser(neaId, usernameOrEmailOrPhone);
+    } else {
+      user = await api.getByCredential(usernameOrEmailOrPhone, role);
+    }
+
+    if (!user) return { ok: false, msg: "Account not found for this role." };
+    if ((user.password || "") !== password) return { ok: false, msg: "Wrong password." };
+
+    setSessionUser({
+      id: user.id,
+      role: user.role,
+      username: user.username || user.email || user.phone || user.id
+    });
+
+    return { ok: true, msg: "Signed in as " + (user.username || user.id), user: user };
+  }
+
+  async function registerCustomerAsync(fullName, email, phone, password) {
+    // fallback if no remote users API
+    if (!hasRemoteUsers()) return registerAccount("CUSTOMER", fullName, email, phone, password);
+
+    // validations (same behavior as before)
+    fullName = normalize(fullName);
+    email = normalize(email);
+    phone = normalize(phone);
+    password = normalize(password);
+
+    if (!fullName || fullName.length < 2) return { ok: false, msg: "Full name is required." };
+    if (!isEmail(email)) return { ok: false, msg: "Invalid email." };
+    if (!isPhone(phone)) return { ok: false, msg: "Use an 8-digit phone number." };
+    if (!password || password.length < 6) return { ok: false, msg: "Password must be at least 6 characters." };
+
+    var api = getRemoteUsersApi();
+
+    // prevent duplicates (email/phone)
+    var existsEmail = await api.getByCredential(email, "CUSTOMER");
+    var existsPhone = await api.getByCredential(phone, "CUSTOMER");
+    if (existsEmail || existsPhone) return { ok: false, msg: "This email/phone is already used." };
+
+    // username generation (ensure unique)
+    var base = (email.split("@")[0] || "user").replace(/[^a-z0-9]/gi, "").slice(0, 12) || "user";
+    var username = base;
+    var i = 1;
+    if (api.getByUsernameLower) {
+      while (await api.getByUsernameLower(username.toLowerCase())) {
+        username = base + (i++);
+      }
+    }
+
+    var newUser = {
+      id: makeIdSafe("c"),
+      role: "CUSTOMER",
+      username: username,
+      password: password,
+      fullName: fullName,
+      email: email,
+      phone: phone
+    };
+
+    await api.create(newUser);
+
+    // also keep local DB so nothing breaks if other pages still read local
+    var local = loadDBSafe();
+    local.users.push(newUser);
+    saveDBSafe(local);
+
+    return { ok: true, msg: "Registered! Your username is: " + username, user: newUser };
+  }
+
+  // FIXED SIGNATURE: (role, value, mode)
+  async function requestOtpAsync(role, value, mode) {
+    // fallback if no remote
+    if (!hasRemoteUsers()) return requestOtp(role, value, mode);
+
+    // hard rule
+    if (role !== "CUSTOMER") return { ok: false, msg: "Recovery is only for customers." };
+
+    value = normalize(value);
+    if (mode === "email" && !isEmail(value)) return { ok: false, msg: "Enter a valid email." };
+    if (mode === "phone" && !isPhone(value)) return { ok: false, msg: "Enter an 8-digit phone number." };
+
+    var usersApi = getRemoteUsersApi();
+    var resetsApi = getRemoteResetsApi();
+
+    var user = await usersApi.getByCredential(value, "CUSTOMER");
+    if (!user) return { ok: false, msg: "No customer account matches this " + mode + "." };
+
+    var otp = ("" + Math.floor(100000 + Math.random() * 900000));
+    var expiresAt = Date.now() + 10 * 60 * 1000; // 10 min like your local verify
+
+    // create remote reset doc if available (optional)
+    var resetId = makeIdSafe("reset");
+    if (resetsApi.create) {
+      try {
+        // if create returns an id, use it
+        var createdId = await resetsApi.create({
+          userId: user.id,
+          mode: mode,
+          token: otp,
+          expiresAt: expiresAt
+        });
+        if (createdId) resetId = createdId;
+      } catch (e) {
+        // if remote reset fails, still allow local simulation
+      }
+    }
+
+    // IMPORTANT: also store locally so your existing verifyOtp() works unchanged
+    var dbLocal = loadDBSafe();
+    dbLocal.passwordResets.push({
+      id: resetId,
+      userId: user.id,
+      email: (mode === "email") ? value : (user.email || ""),
+      phone: (mode === "phone") ? value : (user.phone || ""),
+      token: otp,
+      createdDate: new Date().toISOString(),
+      used: false
+    });
+    saveDBSafe(dbLocal);
+
+    recoveryState.resetId = resetId;
+    recoveryState.userId = user.id;
+
+    return { ok: true, msg: "OTP sent (simulation): " + otp, otp: otp, resetId: resetId };
+  }
+
+  async function syncPasswordToFirestoreIfPossible(userId, newPassword, resetId) {
+    try {
+      var usersApi = getRemoteUsersApi();
+      if (userId && usersApi.updatePassword) {
+        await usersApi.updatePassword(userId, newPassword);
+      }
+
+      var resetsApi = getRemoteResetsApi();
+      if (resetId && resetsApi.markUsed) {
+        await resetsApi.markUsed(resetId);
+      }
+    } catch (e) {
+      // keep silent; local already updated
+      // console.warn("Firestore sync password failed:", e);
+    }
+  }
+
+  // ---------------------------
+  // DB helpers (local)
   // ---------------------------
   function usernameExists(username) {
-    var db = loadDB();
+    var db = loadDBSafe();
     var v = normalize(username).toLowerCase();
     return db.users.some(function (u) {
       return u.username && u.username.toLowerCase() === v;
@@ -255,16 +389,17 @@ async function requestOtpAsync(mode, value) {
   }
 
   function findUserByUsernameOrEmailOrPhone(value, roleFilter) {
-    var db = loadDB();
-    var v = normalize(value).toLowerCase();
+    var db = loadDBSafe();
+    var vRaw = normalize(value);
+    var vLower = vRaw.toLowerCase();
 
     for (var i = 0; i < db.users.length; i++) {
       var u = db.users[i];
       if (roleFilter && u.role !== roleFilter) continue;
 
-      var usernameMatch = (u.username && u.username.toLowerCase() === v);
-      var emailMatch = (u.email && u.email.toLowerCase() === v);
-      var phoneMatch = (u.phone && normalize(u.phone) === v);
+      var usernameMatch = (u.username && u.username.toLowerCase() === vLower);
+      var emailMatch = (u.email && u.email.toLowerCase() === vLower);
+      var phoneMatch = (u.phone && normalize(u.phone) === vRaw);
 
       if (usernameMatch || emailMatch || phoneMatch) return u;
     }
@@ -291,7 +426,7 @@ async function requestOtpAsync(mode, value) {
       return { ok: false, msg: "Only customers can register. Vendors/NEA are pre-registered." };
     }
 
-    var db = loadDB();
+    var db = loadDBSafe();
 
     fullName = normalize(fullName);
     email = normalize(email);
@@ -318,7 +453,7 @@ async function requestOtpAsync(mode, value) {
     if (usernameExists(username)) username = "user" + Date.now();
 
     var newUser = {
-      id: makeId("c"),
+      id: makeIdSafe("c"),
       role: "CUSTOMER",
       username: username,
       password: password,
@@ -328,16 +463,16 @@ async function requestOtpAsync(mode, value) {
     };
 
     db.users.push(newUser);
-    saveDB(db);
+    saveDBSafe(db);
 
     return { ok: true, msg: "Registered! Your username is: " + username, user: newUser };
   }
 
   // ---------------------------
-  // AUTH: Login
+  // AUTH: Login (local)
   // ---------------------------
   function login(role, usernameOrEmailOrPhone, password, neaId) {
-    var db = loadDB();
+    var db = loadDBSafe();
 
     usernameOrEmailOrPhone = normalize(usernameOrEmailOrPhone);
     password = normalize(password);
@@ -378,17 +513,12 @@ async function requestOtpAsync(mode, value) {
   }
 
   // ---------------------------
-  // RECOVERY (CUSTOMER ONLY)
+  // RECOVERY (CUSTOMER ONLY) - local verify/reset
   // ---------------------------
-  function generateOtp() {
-    return ("" + Math.floor(100000 + Math.random() * 900000));
-  }
-
   function requestOtp(role, value, mode) {
-    // HARD RULE
     if (role !== "CUSTOMER") return { ok: false, msg: "Recovery is only for customers." };
 
-    var db = loadDB();
+    var db = loadDBSafe();
     value = normalize(value);
 
     if (mode === "email" && !isEmail(value)) return { ok: false, msg: "Enter a valid email." };
@@ -397,10 +527,10 @@ async function requestOtpAsync(mode, value) {
     var u = findUserByUsernameOrEmailOrPhone(value, "CUSTOMER");
     if (!u) return { ok: false, msg: "No customer account matches this " + mode + "." };
 
-    var otp = generateOtp();
+    var otp = ("" + Math.floor(100000 + Math.random() * 900000));
 
     var resetReq = {
-      id: makeId("reset"),
+      id: makeIdSafe("reset"),
       userId: u.id,
       email: (mode === "email") ? value : (u.email || ""),
       phone: (mode === "phone") ? value : (u.phone || ""),
@@ -410,7 +540,7 @@ async function requestOtpAsync(mode, value) {
     };
 
     db.passwordResets.push(resetReq);
-    saveDB(db);
+    saveDBSafe(db);
 
     recoveryState.resetId = resetReq.id;
     recoveryState.userId = u.id;
@@ -419,7 +549,7 @@ async function requestOtpAsync(mode, value) {
   }
 
   function verifyOtp(otpInput) {
-    var db = loadDB();
+    var db = loadDBSafe();
     otpInput = normalize(otpInput);
 
     if (!recoveryState.resetId) return { ok: false, msg: "No recovery request. Please request OTP again." };
@@ -436,7 +566,7 @@ async function requestOtpAsync(mode, value) {
   }
 
   function resetPassword(newPass, confirmPass) {
-    var db = loadDB();
+    var db = loadDBSafe();
 
     newPass = normalize(newPass);
     confirmPass = normalize(confirmPass);
@@ -456,8 +586,9 @@ async function requestOtpAsync(mode, value) {
 
     user.password = newPass;
     rr.used = true;
-    saveDB(db);
+    saveDBSafe(db);
 
+    // Clear recovery state (handler will capture ids BEFORE calling this)
     recoveryState.resetId = null;
     recoveryState.userId = null;
 
@@ -520,7 +651,7 @@ async function requestOtpAsync(mode, value) {
       var role = getSessionRole();
       if (role !== "CUSTOMER") return showNotice("Guest is only for customers.", "error");
 
-      var guestId = makeId("guest");
+      var guestId = makeIdSafe("guest");
       setSessionUser({ id: guestId, role: "GUEST", username: "guest" });
       showNotice("Continuing as guest.", "ok");
     });
@@ -557,7 +688,6 @@ async function requestOtpAsync(mode, value) {
         t.classList.add("active");
         recoveryMode = t.getAttribute("data-mode");
 
-        // label text
         var label = $("recoveryLabel");
         if (label) {
           label.childNodes[0].nodeValue = (recoveryMode === "email" ? "Email\n              " : "Phone\n              ");
@@ -571,7 +701,7 @@ async function requestOtpAsync(mode, value) {
     });
 
     // Forms
-        on("signinForm", "submit", function (e) {
+    on("signinForm", "submit", function (e) {
       e.preventDefault();
       var role = getSessionRole();
       var neaId = (role === "NEA" && $("siNeaId")) ? $("siNeaId").value : "";
@@ -579,27 +709,32 @@ async function requestOtpAsync(mode, value) {
       loginAsync(role, $("siUsername").value, $("siPassword").value, neaId)
         .then(function (res) {
           showNotice(res.msg, res.ok ? "ok" : "error");
+        })
+        .catch(function () {
+          showNotice("Sign in failed due to a system error.", "error");
         });
     });
 
-
-        on("registerForm", "submit", function (e) {
+    // IMPORTANT: fixed argument order (no more email validation bug)
+    on("registerForm", "submit", function (e) {
       e.preventDefault();
-      var role = getSessionRole();
 
-      registerCustomerAsync(role, $("rgName").value, $("rgEmail").value, $("rgPhone").value, $("rgPassword").value)
+      registerCustomerAsync($("rgName").value, $("rgEmail").value, $("rgPhone").value, $("rgPassword").value)
         .then(function (res) {
           showNotice(res.msg, res.ok ? "ok" : "error");
           if (res.ok) {
             setActiveView("view-signin", "Sign In");
-            $("siUsername").value = res.user.username;
-            $("siPassword").value = "";
+            if ($("siUsername")) $("siUsername").value = res.user.username;
+            if ($("siPassword")) $("siPassword").value = "";
           }
+        })
+        .catch(function () {
+          showNotice("Registration failed due to a system error.", "error");
         });
     });
 
-
-        on("recoveryForm", "submit", function (e) {
+    // FIXED: requestOtpAsync(role, value, mode)
+    on("recoveryForm", "submit", function (e) {
       e.preventDefault();
       var role = getSessionRole();
       if (role !== "CUSTOMER") return showNotice("Recovery is only for customers.", "error");
@@ -609,11 +744,13 @@ async function requestOtpAsync(mode, value) {
           showNotice(res.msg, res.ok ? "ok" : "error");
           if (res.ok) {
             setActiveView("view-otp", "OTP");
-            $("otpValue").value = "";
+            if ($("otpValue")) $("otpValue").value = "";
           }
+        })
+        .catch(function () {
+          showNotice("OTP request failed due to a system error.", "error");
         });
     });
-
 
     on("otpForm", "submit", function (e) {
       e.preventDefault();
@@ -622,20 +759,26 @@ async function requestOtpAsync(mode, value) {
       if (res.ok) setActiveView("view-reset", "Reset");
     });
 
-        on("resetForm", "submit", function (e) {
+    // FIXED: capture ids BEFORE resetPassword clears recoveryState
+    on("resetForm", "submit", function (e) {
       e.preventDefault();
-      var res = resetPassword($("rsPassword").value, $("rsConfirm").value);
+
+      var uid = recoveryState.userId;
+      var rid = recoveryState.resetId;
+      var newPass = $("rsPassword") ? $("rsPassword").value : "";
+      var confirmPass = $("rsConfirm") ? $("rsConfirm").value : "";
+
+      var res = resetPassword(newPass, confirmPass);
       showNotice(res.msg, res.ok ? "ok" : "error");
 
       if (res.ok) {
-        // NEW: also sync to Firestore if available
-        syncPasswordToFirestoreIfPossible(recoveryState.userId, $("rsPassword").value);
+        // also sync to Firestore if available (no UI change)
+        syncPasswordToFirestoreIfPossible(uid, newPass, rid);
 
         setActiveView("view-signin", "Sign In");
-        $("siPassword").value = "";
+        if ($("siPassword")) $("siPassword").value = "";
       }
     });
-
 
     on("btnBackRecovery", "click", function () {
       setActiveView("view-recovery", "Recovery");

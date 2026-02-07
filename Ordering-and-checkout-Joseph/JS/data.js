@@ -6,6 +6,12 @@ FED.data = (() => {
   // Edit these stalls/menu items/prices to match your design.
   // =========================================================
 
+const ECO_BYOB = {
+  id: "a_byob",
+  name: "Eco-friendly takeaway (Bring your own box)",
+  price: 0.00,
+};
+
   const STALLS = [
     {
       id: "stall_1",
@@ -161,6 +167,25 @@ FED.data = (() => {
       ],
     },
   ];
+// Auto-add BYOB option to items that already have takeaway/packaging
+for (const stall of STALLS) {
+  for (const item of stall.menu) {
+    item.addons = item.addons || [];
+
+    const hasTakeawayOrPack = item.addons.some(
+      a => a.id === "a_take" || a.id === "a_pack"
+    );
+
+    const alreadyHasBYOB = item.addons.some(a => a.id === "a_byob");
+
+    if (hasTakeawayOrPack && !alreadyHasBYOB) {
+      // Put it right after takeaway if possible, else add at the end
+      const idxTake = item.addons.findIndex(a => a.id === "a_take");
+      const insertAt = idxTake >= 0 ? idxTake + 1 : item.addons.length;
+      item.addons.splice(insertAt, 0, { ...ECO_BYOB });
+    }
+  }
+}
 
   return { STALLS };
 })();

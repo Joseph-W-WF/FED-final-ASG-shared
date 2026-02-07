@@ -1,0 +1,126 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Backfill Inspections from gradeHistory</title>
+  <style>
+    body { font-family: system-ui, Arial; padding: 16px; }
+    button { padding: 10px 14px; cursor: pointer; }
+    pre { background:#111; color:#0f0; padding:12px; border-radius:8px; overflow:auto; }
+  </style>
+</head>
+<body>
+  <h1>Backfill Firestore inspections from db.js stalls[].gradeHistory</h1>
+  <p>Run once. This will create inspections docs for your seeded history.</p>
+  <button id="runBtn">Backfill now</button>
+  <pre id="log"></pre>
+
+  <!-- your existing seed DB -->
+  <script src="./db.js"></script>
+
+  <script type="module">
+    import { db } from "./firebase.js";
+    import {
+      collection,
+      doc,
+      getDocs,
+      writeBatch
+    } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
+
+    const logEl = document.getElementById("log");
+    const log = (s) => (logEl.textContent += s + "\n");
+
+    // Prevent duplicates by using deterministic doc IDs:
+    // insp_{stallId}_{YYYY-MM} (latest in that month)
+    function makeInspId(stallId, conductedDate) {
+      const ym = String(conductedDate || "").slice(0, 7) || "unknown";
+      return `insp_${stallId}_${ym}`;
+    }
+
+    function computeExpiry(conductedDate) {
+      // expiryDate = conductedDate + 180 days
+      const d = new Date(conductedDate);
+      if (isNaN(d.getTime())) return null;
+      d.setDate(d.getDate() + 180);
+      return d.toISOString().slice(0, 10);
+    }
+
+    async function backfill() {
+      const local = loadDB();
+      const stalls = local.stalls || [];
+      let totalWrites = 0;
+
+      // Firestore batch max 500. Use 400 safe.
+      const CHUNK = 400;
+      let buffer = [];
+
+      for (const stall of stalls) {
+        const history = stall.gradeHistory || [];
+        if (!history.length) continue;
+
+        // If history has multiple entries per month, keep the latest date in that month
+        const byMonth = {};
+        for (const h of history) {
+          const date = h.date || h.conductedDate;
+          const ym = String(date || "").slice(0, 7);
+          if (!ym) continue;
+
+          if (!byMonth[ym]) byMonth[ym] = h;
+          else {
+            const prev = new Date(byMonth[ym].date || "");
+            const cur = new Date(date || "");
+            if (cur > prev) byMonth[ym] = h;
+          }
+        }
+
+        const items = Object.entries(byMonth).map(([ym, h]) => {
+          const conductedDate = (h.date || "").slice(0, 10); // ensure YYYY-MM-DD
+          const score = Number(h.score);
+          const grade = h.grade || null;
+
+          return {
+            id: makeInspId(stall.id, conductedDate),
+            data: {
+              stallId: stall.id,
+              scheduledDate: null,
+              conductedDate,
+              score: Number.isNaN(score) ? null : score,
+              grade,
+              remarks: "Seeded history (from db.js)",
+              expiryDate: h.expiryDate || computeExpiry(conductedDate),
+              createdAtISO: new Date().toISOString() // keep simple string
+            }
+          };
+        });
+
+        buffer.push(...items);
+      }
+
+      log(`Prepared ${buffer.length} inspection docs to write.`);
+
+      for (let i = 0; i < buffer.length; i += CHUNK) {
+        const slice = buffer.slice(i, i + CHUNK);
+        const batch = writeBatch(db);
+
+        for (const item of slice) {
+          const ref = doc(collection(db, "inspections"), item.id);
+          batch.set(ref, item.data, { merge: true });
+        }
+
+        await batch.commit();
+        totalWrites += slice.length;
+        log(`Committed ${slice.length} (total ${totalWrites})`);
+      }
+
+      log("✅ DONE. Go to Firestore -> inspections collection and refresh your Stalls page.");
+    }
+
+    document.getElementById("runBtn").addEventListener("click", () => {
+      backfill().catch((e) => {
+        console.error(e);
+        log("❌ Error: " + (e?.message || e));
+      });
+    });
+  </script>
+</body>
+</html>

@@ -1,4 +1,3 @@
-requireNEA();
 
 document.addEventListener("DOMContentLoaded", () => {
   renderDashboard().catch(console.error);

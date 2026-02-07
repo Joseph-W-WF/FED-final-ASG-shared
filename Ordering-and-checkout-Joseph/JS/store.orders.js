@@ -191,11 +191,59 @@ FED.orders = (() => {
   }
 
   function computeStats() {
-    const orders = read();
-    const stats = { Received: 0, Preparing: 0, Ready: 0, Completed: 0, Failed: 0 };
-    orders.forEach((o) => (stats[o.status] = (stats[o.status] || 0) + 1));
-    return { count: orders.length, ...stats };
+  const all = read();
+
+  // match what the Orders page is currently showing
+  let filtered = all;
+
+  const tab = FED.state?.orderTab;
+  if (tab) filtered = filtered.filter(o => o.status === tab);
+
+  const q = (FED.state?.orderSearch || "").toLowerCase().trim();
+  if (q) {
+    filtered = filtered.filter(o => {
+      const vendor = String(o.vendorName || "").toLowerCase();
+      const vendorMatch = vendor.includes(q);
+
+      const itemMatch = (o.items || []).some(it =>
+        String(it.name || "").toLowerCase().includes(q)
+      );
+
+      return vendorMatch || itemMatch;
+    });
   }
+
+  const totalOrders = filtered.length;
+
+  // For cancelled tab, spent should normally be 0
+  const totalSpent = filtered.reduce((sum, o) => {
+    const t = Number(o.total);
+    return sum + (Number.isFinite(t) ? t : 0);
+  }, 0);
+
+  // Favorite item (by quantity)
+  const counts = new Map();
+  for (const o of filtered) {
+    for (const it of (o.items || [])) {
+      const name = String(it.name || "").trim();
+      if (!name) continue;
+      const qty = Number(it.qty) || 1;
+      counts.set(name, (counts.get(name) || 0) + qty);
+    }
+  }
+
+  let favItem = "-";
+  let best = 0;
+  for (const [name, c] of counts.entries()) {
+    if (c > best) {
+      best = c;
+      favItem = name;
+    }
+  }
+
+  return { totalOrders, totalSpent, favItem };
+}
+
 
   function clearAll() {
     write([]);

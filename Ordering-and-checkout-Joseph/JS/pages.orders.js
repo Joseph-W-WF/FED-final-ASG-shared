@@ -158,12 +158,14 @@ FED.pages.orders = (() => {
         FED.state.orderTab = tab.dataset.tab;
         setActiveTabUI();
         renderOrders();
+        updateStatsUI(); 
       });
     });
 
     document.getElementById("orderSearch").addEventListener("input", (e) => {
       FED.state.orderSearch = e.target.value;
       renderOrders();
+      updateStatsUI(); 
     });
 
     document.getElementById("orderSort").addEventListener("change", (e) => {

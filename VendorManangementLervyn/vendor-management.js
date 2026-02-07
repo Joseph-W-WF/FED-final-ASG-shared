@@ -1,17 +1,77 @@
 // ========================================
-// VENDOR MANAGEMENT JAVASCRIPT
-// Student: Lervyn Ang (S10273196B)
-// Uses db.js (window.DB)
+// VENDOR MANAGEMENT JAVASCRIPT (FIXED)
+// - Works with Firestore (async DB methods via db-compat.js)
+// - Fixes: menu + rental blank, order history still using db.js
+// - Fix: menu item id must be passed as string ("m1")
 // ========================================
 
 let editingMenuItemId = null;
-let editingRentalId = null;
+let editingRentalDocId = null; // Firestore doc id (preferred)
+let editingRentalAgreementId = null; // Agreement ID field like "R19823"
 
-// vendor stall name 
-const VENDOR_STALL_NAME = "Clemens Kitchen";
+let CURRENT_USER_ID = null;   // "v1" / "v2"
+let CURRENT_STALL_ID = null;  // "s1" / "s2"
+let CURRENT_STALL_NAME = null;
+
+// ------------- Small helpers -------------
+const isPromise = (v) => v && typeof v.then === "function";
+const maybeAwait = async (v) => (isPromise(v) ? await v : v);
+
+function safeText(v, fallback = "") {
+  return v === undefined || v === null ? fallback : String(v);
+}
+
+function formatMoney(n) {
+  const x = Number(n);
+  if (Number.isNaN(x)) return "$0.00";
+  return `$${x.toFixed(2)}`;
+}
+
+// Try read vendor id from UI ("V1" / "V2") -> "v1" / "v2"
+function detectUserIdFromUI() {
+  const el =
+    document.querySelector(".top-header-id") ||
+    document.querySelector(".user-id") ||
+    document.querySelector(".user-details .user-id");
+
+  const raw = safeText(el?.textContent, "").trim();
+  if (!raw) return "v1";
+  return raw.toLowerCase(); // V1 -> v1
+}
+
+// Resolve stallId + stallName from Firestore users doc (preferred)
+// fallback: match by hardcoded name
+async function resolveVendorContext() {
+  CURRENT_USER_ID = detectUserIdFromUI(); // v1 or v2
+
+  // 1) Prefer users collection: users/v1 has stallId
+  if (window.DB?.getUserById) {
+    const u = await maybeAwait(DB.getUserById(CURRENT_USER_ID));
+    if (u && u.stallId) {
+      CURRENT_STALL_ID = u.stallId;
+    }
+  }
+
+  // 2) Resolve stallName from stalls list
+  if (window.DB?.getStalls && CURRENT_STALL_ID) {
+    const stalls = await maybeAwait(DB.getStalls());
+    const s = (stalls || []).find((x) => String(x.id) === String(CURRENT_STALL_ID));
+    if (s) CURRENT_STALL_NAME = s.name;
+  }
+
+  // 3) Fallbacks if missing
+  if (!CURRENT_STALL_ID) {
+    // Minimal fallback: v1->s1, v2->s2
+    CURRENT_STALL_ID = CURRENT_USER_ID === "v2" ? "s2" : "s1";
+  }
+  if (!CURRENT_STALL_NAME) {
+    // Minimal fallback
+    CURRENT_STALL_NAME = CURRENT_USER_ID === "v2" ? "Indian Corner" : "Clemens Kitchen";
+  }
+}
 
 // -------------------- INIT --------------------
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
   setupNavigation();
   setupSidebarToggle();
   setupMenuManagement();
@@ -19,15 +79,18 @@ document.addEventListener("DOMContentLoaded", () => {
   setupDashboardMonthFilter();
   setupVendorOrderHistory();
 
-  displayMenuItems();
-  displayRentalAgreements();
-  renderVendorOrders();
+  await resolveVendorContext();
+
+  // initial renders
+  await displayMenuItems();
+  await displayRentalAgreements();
+  await renderVendorOrders();
 });
 
 // -------------------- NAV --------------------
 const setupNavigation = () => {
   document.querySelectorAll(".nav-item").forEach((btn) => {
-    btn.addEventListener("click", () => {
+    btn.addEventListener("click", async () => {
       document.querySelectorAll(".nav-item").forEach((b) => b.classList.remove("active"));
       btn.classList.add("active");
 
@@ -36,7 +99,10 @@ const setupNavigation = () => {
       const page = document.getElementById(btn.dataset.page + "Page");
       if (page) page.classList.add("active");
 
-      if (btn.dataset.page === "orders") renderVendorOrders();
+      // Refresh data when switching pages
+      if (btn.dataset.page === "menu") await displayMenuItems(document.getElementById("menuSearch")?.value?.toLowerCase() || "");
+      if (btn.dataset.page === "rental") await applyRentalFilters();
+      if (btn.dataset.page === "orders") await renderVendorOrders();
     });
   });
 };
@@ -50,6 +116,9 @@ const setupSidebarToggle = () => {
   const headerContent = document.querySelector(".top-header-content");
 
   if (!sidebar || !main || !open || !close) return;
+
+  // default opened (as you want)
+  open.style.display = "none";
 
   close.onclick = () => {
     sidebar.classList.add("closed");
@@ -81,35 +150,63 @@ const setupMenuManagement = () => {
   }
 
   if (search) {
-    search.oninput = (e) => displayMenuItems(e.target.value.toLowerCase());
+    search.oninput = async (e) => displayMenuItems(e.target.value.toLowerCase());
   }
 };
 
-const displayMenuItems = (search = "") => {
-  const items = DB.getMenuItems();
+async function fetchMenuItemsForVendor() {
+  // Prefer stallId filter (matches your Firestore screenshots)
+  if (DB.getMenuItemsByStallId) {
+    return await maybeAwait(DB.getMenuItemsByStallId(CURRENT_STALL_ID));
+  }
+
+  // fallback (older schema uses stallName)
+  const all = await maybeAwait(DB.getMenuItems());
+  if (!Array.isArray(all)) return [];
+  return all.filter((m) => m.stallName === CURRENT_STALL_NAME);
+}
+
+const displayMenuItems = async (search = "") => {
   const body = document.getElementById("menuTableBody");
   if (!body) return;
 
+  let items = await fetchMenuItemsForVendor();
+  items = Array.isArray(items) ? items : [];
+
+  // normalize cuisines (some Firestore docs may not have cuisines array)
+  items = items.map((i) => ({
+    ...i,
+    cuisines: Array.isArray(i.cuisines) ? i.cuisines : [],
+  }));
+
+  if (search) {
+    items = items.filter((i) => safeText(i.name, "").toLowerCase().includes(search));
+  }
+
   body.innerHTML = items
-    .filter((i) => i.name.toLowerCase().includes(search))
-    .map(
-      (i) => `
-      <tr>
-        <td><strong>${i.name}</strong></td>
-        <td>${i.cuisines.map((c) => `<span class="cuisine-tag">${c}</span>`).join("")}</td>
-        <td>$${Number(i.price).toFixed(2)}</td>
-        <td>
-          <button class="btn-action btn-edit" onclick="editMenuItem(${i.id})">✏️</button>
-          <button class="btn-action btn-delete" onclick="deleteMenuItem(${i.id})">🗑️</button>
-        </td>
-      </tr>
-    `
-    )
+    .map((i) => {
+      const cuisinesHtml =
+        i.cuisines.length === 0
+          ? `<span class="cuisine-tag">—</span>`
+          : i.cuisines.map((c) => `<span class="cuisine-tag">${c}</span>`).join("");
+
+      return `
+        <tr>
+          <td><strong>${safeText(i.name, "Unnamed")}</strong></td>
+          <td>${cuisinesHtml}</td>
+          <td>${formatMoney(i.price)}</td>
+          <td>
+            <button class="btn-action btn-edit" onclick="editMenuItem('${i.id}')">✏️</button>
+            <button class="btn-action btn-delete" onclick="deleteMenuItem('${i.id}')">🗑️</button>
+          </td>
+        </tr>
+      `;
+    })
     .join("");
 };
 
-const openMenuModal = () => document.getElementById("menuModal").classList.add("active");
-const closeMenuModal = () => document.getElementById("menuModal").classList.remove("active");
+const openMenuModal = () => document.getElementById("menuModal")?.classList.add("active");
+const closeMenuModal = () => document.getElementById("menuModal")?.classList.remove("active");
 
 const clearMenuForm = () => {
   document.getElementById("itemName").value = "";
@@ -117,7 +214,7 @@ const clearMenuForm = () => {
   document.querySelectorAll(".cuisine-checkbox").forEach((c) => (c.checked = false));
 };
 
-const saveMenuItem = () => {
+const saveMenuItem = async () => {
   const name = document.getElementById("itemName").value.trim();
   const priceStr = document.getElementById("itemPrice").value;
   const price = Number(priceStr);
@@ -129,38 +226,56 @@ const saveMenuItem = () => {
 
   if (!name) return alert("Please enter item name.");
   if (!priceStr || Number.isNaN(price) || price <= 0) return alert("Please enter a valid price.");
-  if (cuisines.length === 0) return alert("Please select at least 1 cuisine.");
 
-  if (editingMenuItemId === null) DB.addMenuItem({ name, cuisines, price });
-  else DB.updateMenuItem(editingMenuItemId, { name, cuisines, price });
+  // cuisines optional (because your Firestore menuItems may not store cuisines)
+  // if you want to enforce at least 1 cuisine, uncomment:
+  // if (cuisines.length === 0) return alert("Please select at least 1 cuisine.");
+
+  const payload = {
+    name,
+    price,
+    cuisines,                 // safe even if your docs don’t use it
+    stallId: CURRENT_STALL_ID,
+    stallName: CURRENT_STALL_NAME,
+    isAvailable: true,
+    description: "",
+    imageUrl: "",
+  };
+
+  if (editingMenuItemId === null) {
+    await maybeAwait(DB.addMenuItem(payload));
+  } else {
+    await maybeAwait(DB.updateMenuItem(editingMenuItemId, payload));
+  }
 
   closeMenuModal();
-  displayMenuItems(document.getElementById("menuSearch").value.toLowerCase());
+  await displayMenuItems(document.getElementById("menuSearch").value.toLowerCase());
 };
 
-const editMenuItem = (id) => {
-  const item = DB.getMenuItemById(id);
+const editMenuItem = async (id) => {
+  const item = await maybeAwait(DB.getMenuItemById(id));
   if (!item) return;
 
   editingMenuItemId = id;
   document.getElementById("modalTitle").textContent = "Edit Menu Item";
-  document.getElementById("itemName").value = item.name;
-  document.getElementById("itemPrice").value = item.price;
+  document.getElementById("itemName").value = safeText(item.name, "");
+  document.getElementById("itemPrice").value = item.price ?? "";
 
+  const cuisines = Array.isArray(item.cuisines) ? item.cuisines : [];
   document.querySelectorAll(".cuisine-checkbox").forEach((c) => {
-    c.checked = item.cuisines.includes(c.value);
+    c.checked = cuisines.includes(c.value);
   });
 
   openMenuModal();
 };
 
-const deleteMenuItem = (id) => {
-  const item = DB.getMenuItemById(id);
+const deleteMenuItem = async (id) => {
+  const item = await maybeAwait(DB.getMenuItemById(id));
   if (!item) return;
-  if (!confirm(`Delete "${item.name}"?`)) return;
+  if (!confirm(`Delete "${safeText(item.name, "this item")}"?`)) return;
 
-  DB.deleteMenuItem(id);
-  displayMenuItems(document.getElementById("menuSearch").value.toLowerCase());
+  await maybeAwait(DB.deleteMenuItem(id));
+  await displayMenuItems(document.getElementById("menuSearch").value.toLowerCase());
 };
 
 // -------------------- RENTAL --------------------
@@ -169,18 +284,22 @@ const setupRentalManagement = () => {
 
   if (addBtn) {
     addBtn.onclick = () => {
-      editingRentalId = null;
+      editingRentalDocId = null;
+      editingRentalAgreementId = null;
       document.getElementById("renewalModalTitle").textContent = "Add Rental Agreement";
       clearRentalForm();
       openRenewalModal();
-      document.getElementById("agreementId").value = DB.makeRentalId();
+
+      // agreement id shown in modal (field "id")
+      const genId = DB.makeRentalId ? DB.makeRentalId() : "R" + String(Math.floor(10000 + Math.random() * 90000));
+      document.getElementById("agreementId").value = genId;
     };
   }
 
   const s = document.getElementById("rentalSearch");
   const f = document.getElementById("dateFilter");
-  if (s) s.oninput = applyRentalFilters;
-  if (f) f.onchange = applyRentalFilters;
+  if (s) s.oninput = () => applyRentalFilters();
+  if (f) f.onchange = () => applyRentalFilters();
 
   const amt = document.getElementById("rentalAmount");
   if (amt) {
@@ -196,68 +315,101 @@ const clearRentalForm = () => {
   document.getElementById("rentalFeeDisplay").textContent = "0.00";
 };
 
-const openRenewalModal = () => document.getElementById("renewalModal").classList.add("active");
-const closeRenewalModal = () => document.getElementById("renewalModal").classList.remove("active");
+const openRenewalModal = () => document.getElementById("renewalModal")?.classList.add("active");
+const closeRenewalModal = () => document.getElementById("renewalModal")?.classList.remove("active");
 
-const applyRentalFilters = () => {
-  const list = DB.getRentalAgreements();
+async function fetchRentalAgreementsForVendor() {
+  const list = await maybeAwait(DB.getRentalAgreements());
+  const arr = Array.isArray(list) ? list : [];
+
+  // If your rentals have stallId/stallName, filter them
+  const hasStallField = arr.some((r) => r.stallId || r.stallName);
+  if (!hasStallField) return arr;
+
+  return arr.filter((r) => {
+    if (r.stallId) return String(r.stallId) === String(CURRENT_STALL_ID);
+    if (r.stallName) return String(r.stallName) === String(CURRENT_STALL_NAME);
+    return true;
+  });
+}
+
+const applyRentalFilters = async () => {
   const search = document.getElementById("rentalSearch").value.toLowerCase();
   const order = document.getElementById("dateFilter").value;
 
-  let filtered = list.filter((r) => r.id.toLowerCase().includes(search));
+  let filtered = await fetchRentalAgreementsForVendor();
+
+  filtered = filtered.filter((r) => safeText(r.id, "").toLowerCase().includes(search));
+
   filtered.sort((a, b) =>
-    order === "newest" ? new Date(b.startDate) - new Date(a.startDate) : new Date(a.startDate) - new Date(b.startDate)
+    order === "newest"
+      ? new Date(b.startDate || 0) - new Date(a.startDate || 0)
+      : new Date(a.startDate || 0) - new Date(b.startDate || 0)
   );
 
-  displayRentalAgreements(filtered);
+  await displayRentalAgreements(filtered);
 };
 
-const displayRentalAgreements = (list = null) => {
-  const data = list || DB.getRentalAgreements();
+const displayRentalAgreements = async (list = null) => {
   const body = document.getElementById("rentalTableBody");
   if (!body) return;
 
-  body.innerHTML = data
-    .map(
-      (r) => `
-      <tr>
-        <td><strong>${r.id}</strong></td>
-        <td>${r.startDate}</td>
-        <td>${r.endDate}</td>
-        <td>$${Number(r.amount).toFixed(2)}</td>
-        <td>
-          <span class="status-badge ${r.status === "Active" ? "status-active" : "status-expired"}">${r.status}</span>
-        </td>
-        <td>
-          <button class="btn-action btn-view" onclick="viewAgreementDetails('${r.id}')">👁️</button>
-          <button class="btn-action btn-edit" onclick="editRentalAgreement('${r.id}')">✏️</button>
-          <button class="btn-action btn-delete" onclick="deleteRentalAgreement('${r.id}')">🗑️</button>
-        </td>
-      </tr>
-    `
-    )
+  const data = list || (await fetchRentalAgreementsForVendor());
+
+  body.innerHTML = (data || [])
+    .map((r) => {
+      const status = safeText(r.status, "Unknown");
+      const docId = r._docId ? r._docId : null; // Firestore-service returns _docId
+      const agreementId = safeText(r.id, "");
+
+      return `
+        <tr>
+          <td><strong>${agreementId}</strong></td>
+          <td>${safeText(r.startDate, "-")}</td>
+          <td>${safeText(r.endDate, "-")}</td>
+          <td>${formatMoney(r.amount)}</td>
+          <td>
+            <span class="status-badge ${status === "Active" ? "status-active" : "status-expired"}">${status}</span>
+          </td>
+          <td>
+            <button class="btn-action btn-view" onclick="viewAgreementDetails('${agreementId}')">👁️</button>
+            <button class="btn-action btn-edit" onclick="editRentalAgreement('${agreementId}')">✏️</button>
+            ${
+              docId
+                ? `<button class="btn-action btn-delete" onclick="deleteRentalAgreement('${agreementId}')">🗑️</button>`
+                : `<button class="btn-action btn-delete" onclick="deleteRentalAgreement('${agreementId}')">🗑️</button>`
+            }
+          </td>
+        </tr>
+      `;
+    })
     .join("");
 };
 
-const viewAgreementDetails = (id) => {
-  const r = DB.getRentalById(id);
+const viewAgreementDetails = async (agreementId) => {
+  // Prefer Firestore: getRentalByAgreementId
+  let r = null;
+  if (DB.getRentalByAgreementId) r = await maybeAwait(DB.getRentalByAgreementId(agreementId));
+  else if (DB.getRentalById) r = await maybeAwait(DB.getRentalById(agreementId));
+
   if (!r) return;
 
   document.getElementById("agreementDetailsBody").innerHTML = `
     <div class="agreement-details">
-      <p><strong>Agreement ID:</strong> <span>${r.id}</span></p>
-      <p><strong>Start Date:</strong> <span>${r.startDate}</span></p>
-      <p><strong>End Date:</strong> <span>${r.endDate}</span></p>
-      <p><strong>Monthly Amount:</strong> <span>$${Number(r.amount).toFixed(2)}</span></p>
+      <p><strong>Agreement ID:</strong> <span>${safeText(r.id, "")}</span></p>
+      <p><strong>Start Date:</strong> <span>${safeText(r.startDate, "-")}</span></p>
+      <p><strong>End Date:</strong> <span>${safeText(r.endDate, "-")}</span></p>
+      <p><strong>Monthly Amount:</strong> <span>${formatMoney(r.amount)}</span></p>
+      <p><strong>Status:</strong> <span>${safeText(r.status, "-")}</span></p>
     </div>
   `;
 
   document.getElementById("viewAgreementModal").classList.add("active");
 };
 
-const closeViewAgreementModal = () => document.getElementById("viewAgreementModal").classList.remove("active");
+const closeViewAgreementModal = () => document.getElementById("viewAgreementModal")?.classList.remove("active");
 
-const saveRentalAgreement = () => {
+const saveRentalAgreement = async () => {
   const agreementId = document.getElementById("agreementId").value;
   const startDate = document.getElementById("startDate").value;
   const endDate = document.getElementById("endDate").value;
@@ -270,34 +422,72 @@ const saveRentalAgreement = () => {
 
   const status = new Date(endDate) >= new Date() ? "Active" : "Expired";
 
-  if (editingRentalId === null) DB.addRentalAgreement({ id: agreementId, startDate, endDate, amount, status });
-  else DB.updateRentalAgreement(editingRentalId, { startDate, endDate, amount, status });
+  const payload = {
+    id: agreementId,
+    startDate,
+    endDate,
+    amount,
+    status,
+    stallId: CURRENT_STALL_ID,
+    stallName: CURRENT_STALL_NAME,
+  };
+
+  // Create
+  if (!editingRentalAgreementId) {
+    await maybeAwait(DB.addRentalAgreement(payload));
+  } else {
+    // Update: prefer Firestore docId update if available
+    const current = DB.getRentalByAgreementId ? await maybeAwait(DB.getRentalByAgreementId(editingRentalAgreementId)) : null;
+    const docId = current?._docId;
+
+    if (docId && DB.updateRentalAgreementByDocId) {
+      await maybeAwait(DB.updateRentalAgreementByDocId(docId, payload));
+    } else if (DB.updateRentalAgreement) {
+      await maybeAwait(DB.updateRentalAgreement(editingRentalAgreementId, payload));
+    } else if (docId && DB.updateRentalAgreementByDocId) {
+      await maybeAwait(DB.updateRentalAgreementByDocId(docId, payload));
+    }
+  }
 
   closeRenewalModal();
-  applyRentalFilters();
+  await applyRentalFilters();
 };
 
-const editRentalAgreement = (id) => {
-  const r = DB.getRentalById(id);
+const editRentalAgreement = async (agreementId) => {
+  let r = null;
+  if (DB.getRentalByAgreementId) r = await maybeAwait(DB.getRentalByAgreementId(agreementId));
+  else if (DB.getRentalById) r = await maybeAwait(DB.getRentalById(agreementId));
+
   if (!r) return;
 
-  editingRentalId = id;
+  editingRentalAgreementId = agreementId;
+  editingRentalDocId = r._docId || null;
+
   document.getElementById("renewalModalTitle").textContent = "Edit Rental Agreement";
-  document.getElementById("agreementId").value = r.id;
-  document.getElementById("startDate").value = r.startDate;
-  document.getElementById("endDate").value = r.endDate;
-  document.getElementById("rentalAmount").value = r.amount;
-  document.getElementById("rentalFeeDisplay").textContent = Number(r.amount).toFixed(2);
+  document.getElementById("agreementId").value = safeText(r.id, "");
+  document.getElementById("startDate").value = safeText(r.startDate, "");
+  document.getElementById("endDate").value = safeText(r.endDate, "");
+  document.getElementById("rentalAmount").value = r.amount ?? "";
+  document.getElementById("rentalFeeDisplay").textContent = Number(r.amount || 0).toFixed(2);
 
   openRenewalModal();
 };
 
-const deleteRentalAgreement = (id) => {
-  const r = DB.getRentalById(id);
+const deleteRentalAgreement = async (agreementId) => {
+  const r = DB.getRentalByAgreementId ? await maybeAwait(DB.getRentalByAgreementId(agreementId)) : null;
   if (!r) return;
-  if (!confirm(`Delete agreement ${r.id}?`)) return;
-  DB.deleteRentalAgreement(id);
-  applyRentalFilters();
+  if (!confirm(`Delete agreement ${safeText(r.id, agreementId)}?`)) return;
+
+  // Prefer deleting by Firestore doc id
+  if (r._docId && DB.deleteRentalAgreementByDocId) {
+    await maybeAwait(DB.deleteRentalAgreementByDocId(r._docId));
+  } else if (DB.deleteRentalAgreement) {
+    await maybeAwait(DB.deleteRentalAgreement(agreementId));
+  } else if (r._docId && DB.deleteRentalAgreementByDocId) {
+    await maybeAwait(DB.deleteRentalAgreementByDocId(r._docId));
+  }
+
+  await applyRentalFilters();
 };
 
 // -------------------- DASHBOARD (MONTH FILTER) --------------------
@@ -371,7 +561,7 @@ const updateMetrics = (orders, revenue) => {
   const all = document.querySelectorAll(".metric-value");
   if (all.length < 2) return;
   all[0].textContent = String(orders);
-  all[1].textContent = `$${revenue.toLocaleString()}`;
+  all[1].textContent = `$${Number(revenue).toLocaleString()}`;
 };
 
 const renderSalesChart = (salesData) => {
@@ -421,7 +611,7 @@ const renderTopItems = (totalOrders) => {
     .join("");
 };
 
-// -------------------- VENDOR ORDER HISTORY --------------------
+// -------------------- VENDOR ORDER HISTORY (Firestore) --------------------
 const setupVendorOrderHistory = () => {
   const search = document.getElementById("vendorOrderSearch");
   const tab = document.getElementById("vendorOrderTab");
@@ -429,7 +619,7 @@ const setupVendorOrderHistory = () => {
   if (tab) tab.addEventListener("change", () => renderVendorOrders());
 };
 
-const renderVendorOrders = () => {
+const renderVendorOrders = async () => {
   const listEl = document.getElementById("vendorOrdersList");
   const emptyEl = document.getElementById("vendorOrdersEmpty");
   const topBody = document.getElementById("topCustomersBody");
@@ -438,8 +628,12 @@ const renderVendorOrders = () => {
   const searchTerm = document.getElementById("vendorOrderSearch").value.toLowerCase();
   const tabVal = document.getElementById("vendorOrderTab").value;
 
-  const all = DB.getOrders();
-  let vendorOrders = all.filter((o) => o.stall === VENDOR_STALL_NAME);
+  // ✅ Firestore orders (mapped to the same shape your UI expects)
+  const all = DB.getVendorOrdersByStallId
+    ? await maybeAwait(DB.getVendorOrdersByStallId(CURRENT_STALL_ID))
+    : [];
+
+  let vendorOrders = Array.isArray(all) ? all : [];
 
   vendorOrders = vendorOrders.filter((o) => {
     if (tabVal === "active") return o.status === "active";
@@ -450,12 +644,14 @@ const renderVendorOrders = () => {
 
   if (searchTerm) {
     vendorOrders = vendorOrders.filter((o) => {
-      return (o.item || "").toLowerCase().includes(searchTerm) ||
-             (o.customerName || "").toLowerCase().includes(searchTerm);
+      return (
+        safeText(o.item, "").toLowerCase().includes(searchTerm) ||
+        safeText(o.customerName, "").toLowerCase().includes(searchTerm)
+      );
     });
   }
 
-  vendorOrders.sort((a, b) => new Date(b.date) - new Date(a.date));
+  vendorOrders.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
 
   if (vendorOrders.length === 0) {
     listEl.style.display = "none";
@@ -466,11 +662,9 @@ const renderVendorOrders = () => {
     listEl.innerHTML = vendorOrders.map(createVendorOrderCard).join("");
   }
 
-  renderTopCustomersTable(topBody, all.filter((o) => o.stall === VENDOR_STALL_NAME));
+  renderTopCustomersTable(topBody, vendorOrders);
 };
 
-// Card: collapsed by default — shows Customer Name + Order ID.
-// Click toggles .open class to reveal full details.
 const createVendorOrderCard = (o) => {
   const statusClass =
     o.status === "Collected" ? "vm-status-collected" :
@@ -478,35 +672,31 @@ const createVendorOrderCard = (o) => {
 
   return `
     <div class="vm-order-card" onclick="toggleOrderCard(this)">
-      <!-- Always visible: customer name, order id, price, status -->
       <div class="vm-order-collapsed">
         <div class="vm-order-collapsed-left">
-          <div class="vm-order-customer">👤 ${o.customerName || "Customer"}</div>
-          <div class="vm-order-id">📋 Order #${o.orderNumber || "-"}</div>
+          <div class="vm-order-customer">👤 ${safeText(o.customerName, "Customer")}</div>
+          <div class="vm-order-id">📋 Order #${safeText(o.orderNumber, "-")}</div>
         </div>
         <div class="vm-order-collapsed-right">
-          <div class="vm-order-price">$${Number(o.price).toFixed(2)}</div>
-          <span class="vm-status ${statusClass}">${o.status}</span>
+          <div class="vm-order-price">${formatMoney(o.price)}</div>
+          <span class="vm-status ${statusClass}">${safeText(o.status, "-")}</span>
         </div>
       </div>
 
-      <!-- Hidden until .open is added: full details -->
       <div class="vm-order-expanded">
-        <div><strong>Item:</strong> ${o.item}</div>
-        <div><strong>Quantity:</strong> ${o.quantity || 1}</div>
-        <div><strong>Payment:</strong> ${o.paymentMethod || "-"}</div>
+        <div><strong>Item:</strong> ${safeText(o.item, "—")}</div>
+        <div><strong>Quantity:</strong> ${safeText(o.quantity, 1)}</div>
+        <div><strong>Payment:</strong> ${safeText(o.paymentMethod, "-")}</div>
         <div><strong>Date:</strong> ${formatVendorDate(o.date)}</div>
       </div>
     </div>
   `;
 };
 
-// Toggle expand/collapse on a single card
-const toggleOrderCard = (card) => {
-  card.classList.toggle("open");
-};
+const toggleOrderCard = (card) => card.classList.toggle("open");
 
 const formatVendorDate = (iso) => {
+  if (!iso) return "-";
   return new Date(iso).toLocaleDateString("en-SG", {
     day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
   });
@@ -515,8 +705,8 @@ const formatVendorDate = (iso) => {
 const renderTopCustomersTable = (tbodyEl, vendorAllOrders) => {
   const map = {};
 
-  vendorAllOrders.forEach((o) => {
-    const name = o.customerName || "Customer";
+  (vendorAllOrders || []).forEach((o) => {
+    const name = safeText(o.customerName, "Customer");
     if (!map[name]) map[name] = { visits: 0, spent: 0 };
     if (o.status !== "cancelled") map[name].visits += 1;
     if (o.status === "Collected") map[name].spent += Number(o.price) || 0;
@@ -533,7 +723,7 @@ const renderTopCustomersTable = (tbodyEl, vendorAllOrders) => {
         <tr>
           <td><strong>${c.name}</strong></td>
           <td>${c.visits}</td>
-          <td>$${c.spent.toFixed(2)}</td>
+          <td>${formatMoney(c.spent)}</td>
         </tr>
       `).join("");
 };

@@ -1,4 +1,3 @@
-requireNEA();
 
 document.addEventListener("DOMContentLoaded", async function () {
   var local = loadDB();

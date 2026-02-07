@@ -5,6 +5,20 @@
 // - Fix: menu item id must be passed as string ("m1")
 // ========================================
 
+// -------------------- AUTH GUARD --------------------
+// Vendor portal should only be accessible to VENDOR sessions created in account.html
+(function () {
+  try {
+    const u = JSON.parse(localStorage.getItem("hawkerSessionUser_v1") || "null");
+    if (!u || String(u.role || "").toUpperCase() !== "VENDOR") {
+      window.location.href = "../user-account-management-Joseph/HTML/account.html";
+      return;
+    }
+  } catch {
+    window.location.href = "../user-account-management-Joseph/HTML/account.html";
+  }
+})();
+
 let editingMenuItemId = null;
 let editingRentalDocId = null; // Firestore doc id (preferred)
 let editingRentalAgreementId = null; // Agreement ID field like "R19823"
@@ -73,6 +87,16 @@ async function resolveVendorContext() {
 // -------------------- INIT --------------------
 document.addEventListener("DOMContentLoaded", async () => {
   setupNavigation();
+  // Logout
+  const btnLogout = document.getElementById("btnLogoutVendor");
+  if (btnLogout) {
+    btnLogout.addEventListener("click", () => {
+      localStorage.removeItem("hawkerSessionUser_v1");
+      localStorage.removeItem("hawkerSessionRole_v1");
+      window.location.href = "../user-account-management-Joseph/HTML/account.html";
+    });
+  }
+
   setupSidebarToggle();
   setupMenuManagement();
   setupRentalManagement();

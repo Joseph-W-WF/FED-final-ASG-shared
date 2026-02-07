@@ -1,11 +1,21 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <meta charset="utf-8" />
   <title>Redirecting...</title>
 </head>
 <body>
   <script>
-    window.location.href = "schedule.html";
+    try {
+      const u = JSON.parse(localStorage.getItem("hawkerSessionUser_v1") || "null");
+      if (!u || String(u.role || "").toUpperCase() !== "NEA") {
+        window.location.href = "../../user-account-management-Joseph/HTML/account.html";
+      } else {
+        window.location.href = "schedule.html";
+      }
+    } catch (e) {
+      window.location.href = "../../user-account-management-Joseph/HTML/account.html";
+    }
   </script>
 </body>
 </html>

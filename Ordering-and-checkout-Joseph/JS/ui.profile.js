@@ -4,7 +4,15 @@ FED.profile = (() => {
   const dropdown = document.getElementById("profileDropdown");
   const btn = document.getElementById("profileBtn");
 
-  function toggleDropdown() {
+    function getSessionUser() {
+    try {
+      return JSON.parse(localStorage.getItem("hawkerSessionUser_v1") || "null");
+    } catch {
+      return null;
+    }
+  }
+
+function toggleDropdown() {
     const open = dropdown.classList.toggle("is-open");
     btn.setAttribute("aria-expanded", String(open));
   }
@@ -23,6 +31,19 @@ FED.profile = (() => {
     document.addEventListener("click", () => closeDropdown());
 
 
+
+    // Sync profile name/avatar from session
+    const sess = getSessionUser();
+    const name = (sess && (sess.username || sess.fullName || sess.id))
+      ? (sess.username || sess.fullName || sess.id)
+      : "Guest";
+    const avatarChar = String(name || "G").trim().charAt(0).toUpperCase() || "G";
+
+    const profileNameEl = document.getElementById("profileName");
+    const avatarTextEl = document.getElementById("avatarText");
+    if (profileNameEl) profileNameEl.textContent = name;
+    if (avatarTextEl) avatarTextEl.textContent = avatarChar;
+
     // Sync sidebar user card (if present)
     const sideName = document.getElementById("sideUserName");
     const sideAvatar = document.getElementById("sideAvatarText");
@@ -30,8 +51,12 @@ FED.profile = (() => {
     if (sideAvatar) sideAvatar.textContent = document.getElementById("avatarText")?.textContent || "G";
 
     document.getElementById("logoutBtn").addEventListener("click", () => {
-      alert("Logout (UI only). Hook to Firebase signOut() later.");
+      // Clear shared session keys used across the whole app
+      localStorage.removeItem("hawkerSessionUser_v1");
+      localStorage.removeItem("hawkerSessionRole_v1");
+
       closeDropdown();
+      window.location.href = "../../user-account-management-Joseph/HTML/account.html";
     });
 
     // Profile page buttons

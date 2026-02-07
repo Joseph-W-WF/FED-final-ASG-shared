@@ -129,7 +129,32 @@
     setLogoutVisible(true);
   }
 
+  
+
   // ---------------------------
+  // Page routing (link pages across teammates)
+  // NOTE: paths are relative to user-account-management-Joseph/HTML/account.html
+  // ---------------------------
+  function routeForRole(role) {
+    var r = (role || "").toString().toUpperCase();
+    if (r === "CUSTOMER" || r === "GUEST") return "../../Ordering-and-checkout-Joseph/HTML/index.html";
+    if (r === "VENDOR") return "../../VendorManangementLervyn/index.html";
+    if (r === "NEA") return "../../regulatoryCompliance-(Aydan)/html/nea.html";
+    return null;
+  }
+
+  function redirectAfterAuth(user, fallbackRole) {
+    var r = (user && user.role) ? user.role : fallbackRole;
+    var url = routeForRole(r);
+    if (!url) return;
+    // small delay so UI notice can render before navigation
+    setTimeout(function () {
+      window.location.href = url;
+    }, 150);
+  }
+
+
+// ---------------------------
   // Role rules (YOUR REQUIREMENT)
   // ---------------------------
   function applyRoleRules(role) {
@@ -709,6 +734,7 @@
       loginAsync(role, $("siUsername").value, $("siPassword").value, neaId)
         .then(function (res) {
           showNotice(res.msg, res.ok ? "ok" : "error");
+          if (res.ok) redirectAfterAuth(res.user, role);
         })
         .catch(function () {
           showNotice("Sign in failed due to a system error.", "error");

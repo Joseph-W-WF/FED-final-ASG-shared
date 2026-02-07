@@ -160,50 +160,121 @@ export async function deleteScheduledInspection(id) {
 }
 
 /* =========================================================
-   NEW (for Vendor Mgmt + Ordering + Account): menu/rentals/orders/users
+   Vendor Mgmt + Ordering + Account: menu/rentals/orders/users
    ========================================================= */
 
-/* -------------------- Menu Items -------------------- */
+/* -------------------- Menu Items (by Stall ID) -------------------- */
 export async function getMenuItemsByStallId(stallId) {
   const q = query(collection(db, "menuItems"), where("stallId", "==", stallId));
   const snap = await getDocs(q);
   return mapDocs(snap);
 }
 
+/* -------------------- Menu Items (by Stall Name optional) -------------------- */
+export async function getMenuItems(stallName = null) {
+  let qRef = collection(db, "menuItems");
+  let qFinal = qRef;
+
+  if (stallName) {
+    qFinal = query(qRef, where("stallName", "==", stallName));
+  }
+
+  const snap = await getDocs(qFinal);
+  const rows = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+
+  // optional sort by name
+  rows.sort((a, b) => String(a.name || "").localeCompare(String(b.name || "")));
+  return rows;
+}
+
+export async function getMenuItemById(id) {
+  const ref = doc(db, "menuItems", id);
+  const snap = await getDoc(ref);
+  return snap.exists() ? { id: snap.id, ...snap.data() } : null;
+}
+
+/**
+ * NOTE: this is the single canonical addMenuItem now (duplicate removed).
+ */
 export async function addMenuItem(item) {
-  const docRef = await addDoc(collection(db, "menuItems"), {
+  const ref = await addDoc(collection(db, "menuItems"), {
     ...item,
     createdAt: serverTimestamp(),
   });
-  return docRef.id;
+  return ref.id;
 }
 
-export async function updateMenuItem(id, data) {
+/**
+ * MERGED behavior:
+ * - sets updatedAt (from earlier version)
+ * - returns true (from later version)
+ */
+export async function updateMenuItem(id, patch) {
   await updateDoc(doc(db, "menuItems", id), {
-    ...data,
+    ...patch,
     updatedAt: serverTimestamp(),
   });
+  return true;
 }
 
+/**
+ * MERGED behavior:
+ * - deletes doc
+ * - returns true (safe for callers)
+ */
 export async function deleteMenuItem(id) {
   await deleteDoc(doc(db, "menuItems", id));
+  return true;
 }
 
-/* -------------------- Rental Agreements -------------------- */
+/* -------------------- Rental Agreements (by Stall ID) -------------------- */
 export async function getRentalAgreementsByStallId(stallId) {
   const q = query(collection(db, "rentalAgreements"), where("stallId", "==", stallId));
   const snap = await getDocs(q);
   return mapDocs(snap);
 }
 
-export async function addRentalAgreement(agreement) {
-  const docRef = await addDoc(collection(db, "rentalAgreements"), {
-    ...agreement,
-    createdAt: serverTimestamp(),
-  });
-  return docRef.id;
+/* -------------------- Rental Agreements (by Stall Name optional) -------------------- */
+export async function getRentalAgreements(stallName = null) {
+  let qRef = collection(db, "rentalAgreements");
+  let qFinal = qRef;
+
+  if (stallName) {
+    qFinal = query(qRef, where("stallName", "==", stallName));
+  }
+
+  const snap = await getDocs(qFinal);
+  const rows = snap.docs.map((d) => ({ _docId: d.id, ...d.data() }));
+
+  // Sort newest first by startDate (string date ok)
+  rows.sort((a, b) => new Date(b.startDate || 0) - new Date(a.startDate || 0));
+  return rows;
 }
 
+export async function getRentalByAgreementId(agreementId) {
+  const q1 = query(collection(db, "rentalAgreements"), where("id", "==", agreementId));
+  const snap = await getDocs(q1);
+  if (snap.empty) return null;
+  const d = snap.docs[0];
+  return { _docId: d.id, ...d.data() };
+}
+
+/**
+ * NOTE: single canonical addRentalAgreement now (duplicate removed).
+ */
+export async function addRentalAgreement(r) {
+  const ref = await addDoc(collection(db, "rentalAgreements"), {
+    ...r,
+    createdAt: serverTimestamp(),
+  });
+  return ref.id;
+}
+
+/**
+ * Keep both styles because your codebase might call either:
+ * - updateRentalAgreement(id, data)   (docId-based)
+ * - updateRentalAgreementByDocId(docId, patch)
+ */
 export async function updateRentalAgreement(id, data) {
   await updateDoc(doc(db, "rentalAgreements", id), {
     ...data,
@@ -213,6 +284,16 @@ export async function updateRentalAgreement(id, data) {
 
 export async function deleteRentalAgreement(id) {
   await deleteDoc(doc(db, "rentalAgreements", id));
+}
+
+export async function updateRentalAgreementByDocId(docId, patch) {
+  await updateDoc(doc(db, "rentalAgreements", docId), patch);
+  return true;
+}
+
+export async function deleteRentalAgreementByDocId(docId) {
+  await deleteDoc(doc(db, "rentalAgreements", docId));
+  return true;
 }
 
 /* -------------------- Orders -------------------- */
@@ -298,6 +379,105 @@ export function listenOrdersByStallId(stallId, callback) {
       return dbb - da;
     });
     callback(out);
+  });
+}
+
+/* ---------------------------
+   ORDERS (Vendor display builder)
+---------------------------- */
+function mapOrderStatus(s) {
+  const v = String(s || "").toUpperCase();
+  if (v === "COLLECTED" || v === "COMPLETED") return "Collected";
+  if (v === "CANCELLED" || v === "CANCELED") return "cancelled";
+  return "active";
+}
+
+function mapPaymentMethod(m) {
+  const v = String(m || "").toUpperCase();
+  if (v === "PAYNOW") return "PayNow";
+  if (v === "CASH") return "Cash";
+  if (v === "CARD") return "Card";
+  return m || "-";
+}
+
+function formatOrderNumber(orderId) {
+  const m = String(orderId || "").match(/\d+/);
+  return m ? m[0] : String(orderId || "-");
+}
+
+async function getDocsByInQuery(colName, field, values) {
+  const out = [];
+  for (let i = 0; i < values.length; i += 10) {
+    const chunk = values.slice(i, i + 10);
+    const q1 = query(collection(db, colName), where(field, "in", chunk));
+    const snap = await getDocs(q1);
+    out.push(...snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+  }
+  return out;
+}
+
+export async function getVendorOrdersByStallId(stallId) {
+  const qOrders = query(collection(db, "orders"), where("stallId", "==", stallId));
+  const ordersSnap = await getDocs(qOrders);
+  const orders = ordersSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+
+  orders.sort((a, b) => new Date(b.createdDateTime || 0) - new Date(a.createdDateTime || 0));
+  if (orders.length === 0) return [];
+
+  const orderIds = orders.map((o) => o.id);
+
+  const items = await getDocsByInQuery("orderItems", "orderId", orderIds);
+  const pays = await getDocsByInQuery("payments", "orderId", orderIds);
+
+  const menuItemIds = [...new Set(items.map((it) => it.menuItemId).filter(Boolean))];
+  let menuMap = {};
+  for (let i = 0; i < menuItemIds.length; i += 10) {
+    const chunk = menuItemIds.slice(i, i + 10);
+    const snaps = await Promise.all(
+      chunk.map(async (mid) => {
+        const ref = doc(db, "menuItems", mid);
+        const s = await getDoc(ref);
+        return s.exists() ? { id: s.id, ...s.data() } : null;
+      })
+    );
+    snaps.filter(Boolean).forEach((mi) => (menuMap[mi.id] = mi));
+  }
+
+  const itemsByOrder = {};
+  for (const it of items) {
+    const oid = it.orderId;
+    if (!itemsByOrder[oid]) itemsByOrder[oid] = [];
+    itemsByOrder[oid].push(it);
+  }
+
+  const payByOrder = {};
+  for (const p of pays) {
+    if (!payByOrder[p.orderId]) payByOrder[p.orderId] = p;
+  }
+
+  return orders.map((o) => {
+    const oi = (itemsByOrder[o.id] || []).slice().sort((a, b) => (b.lineTotal || 0) - (a.lineTotal || 0));
+    const first = oi[0];
+
+    const menu = first ? menuMap[first.menuItemId] : null;
+
+    let itemLabel = menu?.name || "—";
+    if (oi.length > 1) itemLabel = `${itemLabel} (+${oi.length - 1} more)`;
+
+    const pay = payByOrder[o.id];
+    const customerName = o.customerName || o.customerIdOrGuestId || "Customer";
+
+    return {
+      orderId: o.id,
+      orderNumber: formatOrderNumber(o.id),
+      customerName,
+      status: mapOrderStatus(o.status),
+      date: o.createdDateTime || "",
+      item: itemLabel,
+      quantity: first?.qty || 1,
+      price: Number(o.totalAmount || first?.lineTotal || 0),
+      paymentMethod: mapPaymentMethod(pay?.method),
+    };
   });
 }
 
@@ -409,226 +589,4 @@ export async function markPasswordResetUsed(resetId) {
     used: true,
     usedAt: serverTimestamp(),
   });
-}
-
-/* ---------------------------
-   MENU ITEMS (Vendor)
-   collection: menuItems
-   fields: { stallName, name, cuisines:[], price, createdAt }
----------------------------- */
-export async function getMenuItems(stallName = null) {
-  let qRef = collection(db, "menuItems");
-  let qFinal = qRef;
-
-  if (stallName) {
-    qFinal = query(qRef, where("stallName", "==", stallName));
-  }
-
-  const snap = await getDocs(qFinal);
-  const rows = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-
-  // optional sort by name
-  rows.sort((a, b) => String(a.name || "").localeCompare(String(b.name || "")));
-  return rows;
-}
-
-export async function getMenuItemById(id) {
-  const ref = doc(db, "menuItems", id);
-  const snap = await getDoc(ref);
-  return snap.exists() ? { id: snap.id, ...snap.data() } : null;
-}
-
-export async function addMenuItem(item) {
-  const ref = await addDoc(collection(db, "menuItems"), {
-    ...item,
-    createdAt: serverTimestamp(),
-  });
-  return ref.id;
-}
-
-export async function updateMenuItem(id, patch) {
-  await updateDoc(doc(db, "menuItems", id), patch);
-  return true;
-}
-
-export async function deleteMenuItem(id) {
-  await deleteDoc(doc(db, "menuItems", id));
-  return true;
-}
-
-/* ---------------------------
-   RENTAL AGREEMENTS (Vendor)
-   collection: rentalAgreements
-   fields: { stallName, id (agreement id string), startDate, endDate, amount, status, createdAt }
----------------------------- */
-export async function getRentalAgreements(stallName = null) {
-  let qRef = collection(db, "rentalAgreements");
-  let qFinal = qRef;
-
-  if (stallName) {
-    qFinal = query(qRef, where("stallName", "==", stallName));
-  }
-
-  const snap = await getDocs(qFinal);
-  const rows = snap.docs.map((d) => ({ _docId: d.id, ...d.data() }));
-
-  // Sort newest first by startDate (string date ok)
-  rows.sort((a, b) => new Date(b.startDate || 0) - new Date(a.startDate || 0));
-  return rows;
-}
-
-export async function getRentalByAgreementId(agreementId) {
-  const q1 = query(collection(db, "rentalAgreements"), where("id", "==", agreementId));
-  const snap = await getDocs(q1);
-  if (snap.empty) return null;
-  const d = snap.docs[0];
-  return { _docId: d.id, ...d.data() };
-}
-
-export async function addRentalAgreement(r) {
-  const ref = await addDoc(collection(db, "rentalAgreements"), {
-    ...r,
-    createdAt: serverTimestamp(),
-  });
-  return ref.id;
-}
-
-export async function updateRentalAgreementByDocId(docId, patch) {
-  await updateDoc(doc(db, "rentalAgreements", docId), patch);
-  return true;
-}
-
-export async function deleteRentalAgreementByDocId(docId) {
-  await deleteDoc(doc(db, "rentalAgreements", docId));
-  return true;
-}
-
-
-export async function getMenuItemsByStallId(stallId) {
-  const q1 = query(collection(db, "menuItems"), where("stallId", "==", stallId));
-  const snap = await getDocs(q1);
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-}
-
-/* ---------------------------
-   ORDERS (Vendor)
-   Collections:
-   - orders: { id, stallId, createdDateTime, status, totalAmount, customerIdOrGuestId }
-   - orderItems: { orderId, menuItemId, qty, unitPrice, lineTotal }
-   - payments: { orderId, method, status, paidAmount, createdDateTime }
-   - menuItems: { name, ... } (docId usually = menuItemId)
----------------------------- */
-
-function mapOrderStatus(s) {
-  const v = String(s || "").toUpperCase();
-  if (v === "COLLECTED" || v === "COMPLETED") return "Collected";
-  if (v === "CANCELLED" || v === "CANCELED") return "cancelled";
-  return "active";
-}
-
-function mapPaymentMethod(m) {
-  const v = String(m || "").toUpperCase();
-  if (v === "PAYNOW") return "PayNow";
-  if (v === "CASH") return "Cash";
-  if (v === "CARD") return "Card";
-  return m || "-";
-}
-
-function formatOrderNumber(orderId) {
-  // if orderId looks like o1001 -> 1001, else keep orderId
-  const m = String(orderId || "").match(/\d+/);
-  return m ? m[0] : String(orderId || "-");
-}
-
-async function getDocsByInQuery(colName, field, values) {
-  // Firestore 'in' query max 10 items
-  const out = [];
-  for (let i = 0; i < values.length; i += 10) {
-    const chunk = values.slice(i, i + 10);
-    const q1 = query(collection(db, colName), where(field, "in", chunk));
-    const snap = await getDocs(q1);
-    out.push(...snap.docs.map((d) => ({ id: d.id, ...d.data() })));
-  }
-  return out;
-}
-
-export async function getVendorOrdersByStallId(stallId) {
-  // 1) Orders for this stall
-  const qOrders = query(collection(db, "orders"), where("stallId", "==", stallId));
-  const ordersSnap = await getDocs(qOrders);
-  const orders = ordersSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
-
-  // Sort newest first (string date still ok)
-  orders.sort((a, b) => new Date(b.createdDateTime || 0) - new Date(a.createdDateTime || 0));
-
-  if (orders.length === 0) return [];
-
-  const orderIds = orders.map((o) => o.id);
-
-  // 2) Get items + payments for these orders
-  const items = await getDocsByInQuery("orderItems", "orderId", orderIds);
-  const pays = await getDocsByInQuery("payments", "orderId", orderIds);
-
-  // 3) Get menu item names (docId usually matches menuItemId)
-  const menuItemIds = [...new Set(items.map((it) => it.menuItemId).filter(Boolean))];
-  let menuMap = {};
-  for (let i = 0; i < menuItemIds.length; i += 10) {
-    const chunk = menuItemIds.slice(i, i + 10);
-    // docId is usually menuItemId, but in case, also try where("id","in",chunk) if needed later
-    const snaps = await Promise.all(
-      chunk.map(async (mid) => {
-        const ref = doc(db, "menuItems", mid);
-        const s = await getDoc(ref);
-        return s.exists() ? { id: s.id, ...s.data() } : null;
-      })
-    );
-    snaps.filter(Boolean).forEach((mi) => (menuMap[mi.id] = mi));
-  }
-
-  // 4) Build display-ready vendor orders
-  const itemsByOrder = {};
-  for (const it of items) {
-    const oid = it.orderId;
-    if (!itemsByOrder[oid]) itemsByOrder[oid] = [];
-    itemsByOrder[oid].push(it);
-  }
-
-  const payByOrder = {};
-  for (const p of pays) {
-    // pick first success-ish payment if multiple
-    if (!payByOrder[p.orderId]) payByOrder[p.orderId] = p;
-  }
-
-  return orders.map((o) => {
-    const oi = (itemsByOrder[o.id] || []).slice().sort((a, b) => (b.lineTotal || 0) - (a.lineTotal || 0));
-    const first = oi[0];
-
-    const menu = first ? menuMap[first.menuItemId] : null;
-
-    // item label: "Chicken Rice (+2 more)" if multiple items
-    let itemLabel = menu?.name || "—";
-    if (oi.length > 1) itemLabel = `${itemLabel} (+${oi.length - 1} more)`;
-
-    const pay = payByOrder[o.id];
-
-    const customerName = o.customerName || o.customerIdOrGuestId || "Customer";
-
-    return {
-      orderId: o.id,
-      orderNumber: formatOrderNumber(o.id),
-      customerName,
-      status: mapOrderStatus(o.status),
-      date: o.createdDateTime || "",
-      item: itemLabel,
-      quantity: first?.qty || 1,
-      price: Number(o.totalAmount || first?.lineTotal || 0),
-      paymentMethod: mapPaymentMethod(pay?.method),
-    };
-  });
-}
-
-export async function getUserById(userId) {
-  const ref = doc(db, "users", userId);
-  const snap = await getDoc(ref);
-  return snap.exists() ? { id: snap.id, ...snap.data() } : null;
 }

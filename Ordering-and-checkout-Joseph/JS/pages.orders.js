@@ -22,6 +22,8 @@ FED.pages.orders = (() => {
   function renderOrders() {
     const orders = FED.orders.getOrders();
 
+    let changed = false;
+
     let filtered = orders.filter(o => o.status === FED.state.orderTab);
 
     const q = (FED.state.orderSearch || "").toLowerCase().trim();
@@ -60,6 +62,35 @@ FED.pages.orders = (() => {
 
       const canAct = o.status === "Received";
       const statusClass = `status--${o.status}`;
+      let queueHtml = "";
+      if (o.status === "Received" && (typeof window.getQueueInfo === "function")) {
+        // Ensure this order has a queue ticket
+        if (!o.queueTicketId && (typeof window.createQueueTicket === "function")) {
+          const nameEl = document.getElementById("profileName");
+          const customerName = (nameEl && nameEl.textContent) ? nameEl.textContent : "Customer";
+
+          const t = window.createQueueTicket(o.vendorId, customerName, o.id);
+          if (t) {
+            o.queueTicketId = t.ticketId;
+            o.queueNo = t.ticketNo;
+            o.queueEtaMin = t.etaMinutes;
+            changed = true;
+          }
+        }
+
+        const info = o.queueTicketId ? window.getQueueInfo(o.vendorId, o.queueTicketId) : null;
+        if (info) {
+          queueHtml = `
+            <div class="queueStrip">
+              <div><span class="qLabel">Queue</span> <span class="qValue">#${info.ticketNo}</span></div>
+              <div><span class="qLabel">Ahead</span> <span class="qValue">${info.peopleAhead}</span></div>
+              <div><span class="qLabel">ETA</span> <span class="qValue">${info.etaMinutes} min</span></div>
+              <div><span class="qLabel">Status</span> <span class="qValue">${info.status}</span></div>
+            </div>
+          `;
+        }
+      }
+
 
       return `
         <article class="orderCard">
@@ -70,6 +101,8 @@ FED.pages.orders = (() => {
             </div>
             <div class="status ${statusClass}">${escapeHTML(o.status)}</div>
           </div>
+
+          ${queueHtml}
 
           <div class="orderItems">
             <ul>${itemsText}</ul>
@@ -86,9 +119,18 @@ FED.pages.orders = (() => {
       `;
     }).join("");
 
+    if (changed) FED.orders.setOrders(orders);
+
     ordersListEl.querySelectorAll("[data-complete]").forEach(btn => {
       btn.addEventListener("click", () => {
-        FED.orders.updateStatus(btn.dataset.complete, "Completed");
+        const orderId = btn.dataset.complete;
+        const all = FED.orders.getOrders();
+        const o = all.find(x => x.id === orderId);
+        if (o && o.queueTicketId && FED.queueCompat && typeof FED.queueCompat.setTicketStatus === "function") {
+          FED.queueCompat.setTicketStatus(o.vendorId, o.queueTicketId, "DONE");
+        }
+
+        FED.orders.updateStatus(orderId, "Completed");
         renderOrders();
         updateStatsUI();
       });
@@ -96,7 +138,14 @@ FED.pages.orders = (() => {
 
     ordersListEl.querySelectorAll("[data-cancel]").forEach(btn => {
       btn.addEventListener("click", () => {
-        FED.orders.updateStatus(btn.dataset.cancel, "Failed");
+        const orderId = btn.dataset.cancel;
+        const all = FED.orders.getOrders();
+        const o = all.find(x => x.id === orderId);
+        if (o && o.queueTicketId && FED.queueCompat && typeof FED.queueCompat.setTicketStatus === "function") {
+          FED.queueCompat.setTicketStatus(o.vendorId, o.queueTicketId, "CANCELLED");
+        }
+
+        FED.orders.updateStatus(orderId, "Failed");
         renderOrders();
         updateStatsUI();
       });

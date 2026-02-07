@@ -652,11 +652,24 @@
     });
 
     on("btnContinueFromRole", "click", function () {
-      var role = getSessionRole();
-      if (!role) return showNotice("Please choose a role first.", "error");
-      applyRoleRules(role);
-      setActiveView("view-auth", "Sign In");
-    });
+    var role = getSessionRole();
+    if (!role) return showNotice("Please choose a role first.", "error");
+
+    // ✅ if user already has a session that matches selected role, go straight in
+    var u = getSessionUser();
+    var want = String(role || "").toUpperCase();
+    var have = u ? String(u.role || "").toUpperCase() : "";
+
+    if (u && (have === want || (want === "CUSTOMER" && have === "GUEST"))) {
+      showNotice("Continuing…", "ok");
+      redirectAfterAuth(u, role);
+      return;
+    }
+
+    applyRoleRules(role);
+    setActiveView("view-auth", "Sign In");
+  });
+
 
     // Auth home buttons
     on("btnGoSignin", "click", function () {
@@ -673,13 +686,17 @@
     });
 
     on("btnGuest", "click", function () {
-      var role = getSessionRole();
-      if (role !== "CUSTOMER") return showNotice("Guest is only for customers.", "error");
+    var role = getSessionRole();
+    if (role !== "CUSTOMER") return showNotice("Guest is only for customers.", "error");
 
-      var guestId = makeIdSafe("guest");
-      setSessionUser({ id: guestId, role: "GUEST", username: "guest" });
-      showNotice("Continuing as guest.", "ok");
+    var guestId = makeIdSafe("guest");
+    setSessionUser({ id: guestId, role: "GUEST", username: "guest" });
+    showNotice("Continuing as guest…", "ok");
+
+    // ✅ actually go to customer portal
+    redirectAfterAuth({ role: "GUEST" }, "CUSTOMER");
     });
+
 
     // Signin links
     on("btnForgot", "click", function () {

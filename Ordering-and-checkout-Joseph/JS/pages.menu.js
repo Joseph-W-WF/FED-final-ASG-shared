@@ -2,7 +2,7 @@ window.FED = window.FED || {};
 FED.pages = FED.pages || {};
 
 FED.pages.menu = (() => {
-  const { escapeHTML, money } = FED.utils;
+  const { escapeHTML, money, foodPlaceholder } = FED.utils;
   const { STALLS } = FED.data;
 
   const menuTitleEl = document.getElementById("menuTitle");
@@ -47,6 +47,8 @@ FED.pages.menu = (() => {
     menuListEl.innerHTML = items.map(item => {
       const tagHtml = (item.tags || []).map(t => `<span class="tag">${escapeHTML(t)}</span>`).join("");
 
+      const imgSrc = item.img || foodPlaceholder(item.name);
+
       const addonHtml = (item.addons || []).map(a => {
         const extra = a.price > 0 ? `+${money(a.price)}` : "+$0.00";
         return `
@@ -60,9 +62,12 @@ FED.pages.menu = (() => {
       return `
         <article class="itemCard" data-itemcard="${item.id}">
           <div class="itemCard__top">
-            <div>
-              <div class="itemName">${escapeHTML(item.name)}</div>
-              <div class="itemMeta">${tagHtml}</div>
+            <div class="itemCard__left">
+              <img class="foodImg" src="${imgSrc}" alt="${escapeHTML(item.name)}" />
+              <div class="itemCard__info">
+                <div class="itemName">${escapeHTML(item.name)}</div>
+                <div class="itemMeta">${tagHtml}</div>
+              </div>
             </div>
             <div class="itemPrice">${money(item.price)}</div>
           </div>

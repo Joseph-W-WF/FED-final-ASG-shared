@@ -153,6 +153,7 @@ a { color: inherit; }
 body.sidenav-collapsed .mainArea{ margin-left: 0; }
 body.sidenav-collapsed .sidenav{ transform: translateX(-110%); }
 body.sidenav-collapsed .iconBtn{ display: inline-grid; }
+
 /* Ensure "open" wins even if desktop state is collapsed */
 .sidenav.is-open{ transform: translateX(0) !important; }
 
@@ -182,18 +183,15 @@ body.sidenav-collapsed .iconBtn{ display: inline-grid; }
   gap: 14px;
 }
 .iconBtn{
-  width: 60px;
-  height: 60px;
+  width: 56px;
+  height: 56px;
   border-radius: 999px;
   border: 1px solid rgba(255,255,255,0.30);
   background: rgba(255,255,255,0.10);
   color: #fff;
   font-size: 22px;
   display: none; /* shown on mobile + when desktop sidenav collapsed */
-  position: absolute;
-  left: 16px;
-  top: 16px;
-  z-index: 60;
+  position: relative; /* keep in normal flow so it never blocks the title */
   cursor: pointer;
   backdrop-filter: blur(12px) saturate(150%);
   -webkit-backdrop-filter: blur(12px) saturate(150%);
@@ -306,12 +304,23 @@ body.sidenav-collapsed .iconBtn{ display: inline-grid; }
   border-radius: 999px;
   padding: 10px 12px;
   display: grid;
-  grid-template-columns: 40px 1fr 18px;
+  grid-template-columns: 40px auto 18px;
   gap: 10px;
   align-items: center;
-  width: 100%;
+  width: auto;
+  max-width: 240px;
 }
 .profile__btn:hover{ background: rgba(255,255,255,0.12); }
+
+.profile__text{ min-width: 0; white-space: nowrap; }
+.profile__name{
+  font-weight: 800;
+  line-height: 1.1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .avatar{
   width: 38px; height: 38px;
   border-radius: 999px;
@@ -322,7 +331,6 @@ body.sidenav-collapsed .iconBtn{ display: inline-grid; }
   font-weight: 800;
 }
 .avatar--lg{ width: 54px; height: 54px; font-size: 18px; }
-.profile__name{ font-weight: 800; line-height: 1.1; }
 .profile__sub{ font-size: 12px; opacity: 0.9; }
 .chev{ width: 18px; height: 18px; opacity: 0.9; }
 
@@ -488,6 +496,25 @@ body.sidenav-collapsed .iconBtn{ display: inline-grid; }
   align-items: start;
   gap: 12px;
 }
+
+.itemCard__left{
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  min-width: 0;
+}
+
+.foodImg{
+  width: 72px;
+  height: 72px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  object-fit: cover;
+  flex: 0 0 auto;
+  background: #fff;
+}
+
+.itemCard__info{ min-width: 0; }
 .itemName{ font-weight: 900; font-size: 16px; }
 .itemPrice{ font-weight: 900; }
 .itemMeta{ display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
@@ -724,6 +751,20 @@ body.sidenav-collapsed .iconBtn{ display: inline-grid; }
 .status--Completed{ background: rgba(22,163,74,0.12); border-color: rgba(22,163,74,0.22); color: #14532d; }
 .status--Failed{ background: rgba(220,38,38,0.10); border-color: rgba(220,38,38,0.22); color: #7f1d1d; }
 
+.queueStrip{
+  margin-top: 10px;
+  padding: 10px 12px;
+  border: 1px solid rgba(99,102,241,0.18);
+  background: rgba(99,102,241,0.08);
+  border-radius: 12px;
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  font-size: 12px;
+}
+.qLabel{ color: var(--muted); font-weight: 800; margin-right: 6px; }
+.qValue{ font-weight: 900; }
+
 .orderItems{ margin-top: 10px; border-top: 1px solid rgba(17,24,39,0.08); padding-top: 10px; }
 .orderItems ul{ margin: 0; padding-left: 18px; color: #374151; }
 .orderFooter{
@@ -808,7 +849,7 @@ body.sidenav-collapsed .iconBtn{ display: inline-grid; }
 /* Responsive */ 
 @media (max-width: 980px){
   .mainArea{ margin-left: 0; }
-  .iconBtn{ display: inline-grid; place-items: center; left: 14px; top: 14px; }
+  .iconBtn{ display: inline-grid; place-items: center; }
   .sidenav{
     transform: translateX(-110%);
     transition: transform 0.2s ease;
@@ -820,4 +861,30 @@ body.sidenav-collapsed .iconBtn{ display: inline-grid; }
   .grid--3{ grid-template-columns: 1fr; }
   .toolbar{ grid-template-columns: 1fr; }
   .stallGrid{ grid-template-columns: 1fr; }
+}
+
+/* ------------------------------
+   Mobile polish (iPhone 16-ish)
+   ------------------------------ */
+@media (max-width: 430px){
+  .sidenav{ width: 86vw; max-width: 320px; }
+
+  .topbar__inner{ height: auto; padding: 12px 14px; }
+  .brand__title{ font-size: 20px; }
+  .brand__subtitle{ display: none; }
+
+  .iconBtn{ width: 48px; height: 48px; font-size: 20px; }
+  .topCartBtn{ width: 48px; height: 48px; }
+  .topCartBtn__icon{ font-size: 18px; }
+
+  .profile__btn{ padding: 8px 10px; max-width: 200px; }
+  .avatar{ width: 34px; height: 34px; }
+
+  .container{ padding: 16px 14px 30px; }
+  .page__header h1{ font-size: 28px; }
+
+  .grid--2{ grid-template-columns: 1fr; }
+  .grid--3{ grid-template-columns: 1fr; }
+
+  .foodImg{ width: 60px; height: 60px; }
 }

@@ -145,6 +145,20 @@ FED.checkout = (() => {
         createdAt: new Date().toISOString(),
       };
 
+      // Queue ticket (Aydan's system)
+      // Only create a ticket for successful (Received) orders.
+      if (!shouldFail && typeof window.createQueueTicket === "function") {
+        const nameEl = document.getElementById("profileName");
+        const customerName = (nameEl && nameEl.textContent) ? nameEl.textContent : "Customer";
+
+        const ticket = window.createQueueTicket(order.vendorId, customerName, order.id);
+        if (ticket) {
+          order.queueTicketId = ticket.ticketId;
+          order.queueNo = ticket.ticketNo;
+          order.queueEtaMin = ticket.etaMinutes;
+        }
+      }
+
       FED.orders.addOrder(order);
 
       if (!shouldFail) {

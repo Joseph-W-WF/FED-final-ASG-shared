@@ -45,12 +45,15 @@ FED.cart = (() => {
   }
 
   function updateBadge() {
-    const el = document.getElementById("cartBadge");
-    if (!el) return;
+  const cart = getCart();
+  const count = countItems(cart);
 
-    const cart = getCart();
-    el.textContent = String(countItems(cart));
-  }
+  ["cartBadge", "cartTopBadge"].forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = String(count);
+  });
+}
+
 
   function addToCart(stall, item, qty, addons) {
     const cart = getCart();

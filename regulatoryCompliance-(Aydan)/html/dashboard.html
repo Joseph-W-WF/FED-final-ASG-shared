@@ -6,6 +6,7 @@
   <title>NEA Dashboard</title>
 </head>
 <body>
+<button id="sidebarToggleBtn" type="button">☰</button>
 
 <div class="layout">
   <aside class="sidebar">
@@ -96,7 +97,13 @@
 </script>
 
 <script src="../../db.js"></script>
-<script src="../js/neaGuard.js"></script>
+
+<script type="module" src="../../firebase.js"></script>
+<script type="module" src="../../firestore-service.js"></script>
+<script type="module" src="../../db-compat.js"></script>
+
 <script src="../js/nea.js"></script>
+<script src="../js/sidebar-toggle.js"></script>
+
 </body>
 </html>

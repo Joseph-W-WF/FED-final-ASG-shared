@@ -39,6 +39,12 @@ FED.profile = (() => {
       if (!confirm("Clear cart + orders?")) return;
       FED.cart.clearAll();
       FED.orders.clearAll();
+
+      // Also clear queue tickets (so queue numbers reset)
+      if (FED.queueCompat && typeof FED.queueCompat.resetQueueDB === "function") {
+        FED.queueCompat.resetQueueDB();
+      }
+
       FED.cart.updateBadge();
       alert("Cleared.");
       FED.router.go("browse");
@@ -85,6 +91,23 @@ FED.profile = (() => {
           createdAt: new Date(Date.now() - 7200000).toISOString(),
         },
       ];
+
+      // Add queue tickets for any demo *active* orders so the Active Orders tab can show ticket info
+      if (typeof window.createQueueTicket === "function") {
+        const nameEl = document.getElementById("profileName");
+        const customerName = (nameEl && nameEl.textContent) ? nameEl.textContent : "Customer";
+
+        demo.forEach(o => {
+          if (o.status === "Received") {
+            const t = window.createQueueTicket(o.vendorId, customerName, o.id);
+            if (t) {
+              o.queueTicketId = t.ticketId;
+              o.queueNo = t.ticketNo;
+              o.queueEtaMin = t.etaMinutes;
+            }
+          }
+        });
+      }
 
       const current = FED.orders.getOrders();
       FED.orders.setOrders([...demo, ...current]);

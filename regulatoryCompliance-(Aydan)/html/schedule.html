@@ -6,6 +6,7 @@
   <title>Schedule Inspection</title>
 </head>
 <body>
+<button id="sidebarToggleBtn" type="button">☰</button>
 
 <div class="layout">
   <aside class="sidebar">
@@ -15,7 +16,8 @@
     </div>
 
     <nav class="nav">
-      <a class="nav-item" href="schedule.html"><span class="nav-icon">🗓️</span><span>Schedule Inspection</span></a>
+      <!-- ✅ ACTIVE HERE -->
+      <a class="nav-item active" href="schedule.html"><span class="nav-icon">🗓️</span><span>Schedule Inspection</span></a>
       <a class="nav-item" href="inspection.html"><span class="nav-icon">🧾</span><span>Log Inspection</span></a>
       <a class="nav-item" href="dashboard.html"><span class="nav-icon">📊</span><span>Dashboard</span></a>
       <a class="nav-item" href="stall.html"><span class="nav-icon">🏪</span><span>Stalls</span></a>
@@ -39,7 +41,7 @@
     </header>
 
     <main class="main">
-      <div class="grid" style="grid-template-columns: 1fr;">
+      <div class="grid">
         <div class="card">
           <h2 style="margin-top:0;">New Schedule</h2>
           <p class="small" style="margin-top:0;">Create an upcoming inspection schedule (no grade yet).</p>
@@ -47,11 +49,13 @@
           <label>Stall</label>
           <select id="stallSelect"></select>
 
-          <label style="margin-top:12px;">Scheduled Date</label>
+          <label>Scheduled Date</label>
           <input id="scheduledDate" type="date" />
 
-          <button id="scheduleBtn" style="margin-top:14px;">Schedule</button>
-          <p id="msg" class="small"></p>
+          <div style="margin-top:18px; display:flex; gap:12px; align-items:center;">
+            <button id="scheduleBtn" class="btn-primary" type="button">Schedule</button>
+            <span id="msg" class="small"></span>
+          </div>
         </div>
       </div>
     </main>
@@ -65,7 +69,14 @@
 </script>
 
 <script src="../../db.js"></script>
-<script src="../js/neaGuard.js"></script>
+
+<!-- Firebase layer (same pattern as inspection.html) -->
+<script type="module" src="../../firebase.js"></script>
+<script type="module" src="../../firestore-service.js"></script>
+<script type="module" src="../../db-compat.js"></script>
+
 <script src="../js/schedule.js"></script>
+<script src="../js/sidebar-toggle.js"></script>
+
 </body>
 </html>

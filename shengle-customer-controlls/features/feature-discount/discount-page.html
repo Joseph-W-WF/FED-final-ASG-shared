@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rewards & Discounts</title>
+  <style>
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      background: #f4f4f4;
+      margin: 0;
+      padding: 0;
+    }
+
+    header {
+      background: #5b5ce6;
+      color: #fff;
+      padding: 20px;
+      text-align: center;
+      font-weight: bold;
+      font-size: 1.5rem;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 20px auto;
+      padding: 0 16px;
+    }
+
+    .points-card {
+      background: #ffffff;
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .points-card h2 {
+      margin: 0 0 8px 0;
+    }
+
+    .points {
+      font-size: 2.2rem;
+      font-weight: bold;
+      color: #5b5ce6;
+    }
+
+    .earn-btn {
+      background: #5b5ce6;
+      color: white;
+      border: none;
+      padding: 12px 18px;
+      border-radius: 12px;
+      cursor: pointer;
+      font-size: 1rem;
+    }
+
+    .earn-btn:hover {
+      background: #4647d6;
+    }
+
+    .section-title {
+      font-size: 1.3rem;
+      margin: 30px 0 12px;
+    }
+
+    .rewards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 16px;
+    }
+
+    .reward-card {
+      background: #ffffff;
+      border-radius: 16px;
+      padding: 16px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .reward-card h3 {
+      margin-top: 0;
+    }
+
+    .reward-card p {
+      flex-grow: 1;
+    }
+
+    .redeem-btn {
+      margin-top: 12px;
+      background: #5b5ce6;
+      color: white;
+      border: none;
+      padding: 10px;
+      border-radius: 10px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .redeem-btn:disabled {
+      background: #ddd;
+      cursor: not-allowed;
+    }
+
+    .tier {
+      margin-top: 20px;
+      background: #ffffff;
+      padding: 16px;
+      border-radius: 16px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+
+    .progress-bar {
+      background: #eee;
+      border-radius: 10px;
+      overflow: hidden;
+      margin-top: 10px;
+    }
+
+    .progress {
+      height: 14px;
+      background: #5b5ce6;
+      width: 0%;
+    }
+
+    footer {
+      text-align: center;
+      padding: 20px;
+      color: #777;
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  Rewards & Discounts
+</header>
+
+<div class="container">
+
+  <!-- Points Summary -->
+  <div class="points-card">
+    <div>
+      <h2>Your Points</h2>
+      <div class="points" id="points">0</div>
+      <small>Earn 10 points for every $1 spent</small>
+    </div>
+  </div>
+
+  <!-- Rewards -->
+  <div class="section-title">Redeem Your Rewards</div>
+  <div class="rewards-grid">
+
+    <div class="reward-card">
+      <h3>Free Fries</h3>
+      <p>Redeem for a medium fries.</p>
+      <strong>150 points</strong>
+      <button class="redeem-btn" onclick="redeem(150)">Redeem</button>
+    </div>
+
+    <div class="reward-card">
+      <h3>Free Drink</h3>
+      <p>Redeem for any soft drink.</p>
+      <strong>200 points</strong>
+      <button class="redeem-btn" onclick="redeem(200)">Redeem</button>
+    </div>
+
+    <div class="reward-card">
+      <h3>Burger Discount</h3>
+      <p>$3 off any burger.</p>
+      <strong>300 points</strong>
+      <button class="redeem-btn" onclick="redeem(300)">Redeem</button>
+    </div>
+
+    <div class="reward-card">
+      <h3>Free Meal</h3>
+      <p>Redeem for a full meal set.</p>
+      <strong>500 points</strong>
+      <button class="redeem-btn" onclick="redeem(500)">Redeem</button>
+    </div>
+
+  </div>
+
+  <!-- Tier Progress -->
+  <div class="section-title">Membership Tier</div>
+  <div class="tier">
+    <strong id="tierName">Silver</strong>
+    <div class="progress-bar">
+      <div class="progress" id="tierProgress"></div>
+    </div>
+    <small id="tierText">250 / 500 points to Gold</small>
+  </div>
+
+</div>
+
+<footer>
+  Points reset yearly • Rewards subject to availability
+</footer>
+
+<script type="module" src="JS/discount.js"></script>
+
+</body>
+</html>

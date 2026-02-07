@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>User Profile</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: Arial, Helvetica, sans-serif;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background: #f4f4f4;
+            display: flex;
+            justify-content: center;
+            align-items: stretch;
+            padding: 0;
+        }
+
+        .card {
+            width: 100%;
+            background: #fff;
+            border-radius: 0;
+            padding: 20px;
+            box-shadow: none;
+        }
+
+        /* mobile / single-column */
+        .card .header {
+            text-align: center;
+        }
+
+        .avatar {
+            width: 90px;
+            height: 90px;
+            border-radius: 50%;
+            background: #ddd;
+            margin: 0 auto 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 36px;
+            font-weight: bold;
+            color: #555;
+        }
+
+        h2 {
+            margin: 10px 0 5px;
+        }
+
+        .email {
+            font-size: 13px;
+            color: #777;
+            margin-bottom: 20px;
+        }
+
+        .field {
+            margin-bottom: 15px;
+        }
+
+        .field label {
+            font-size: 11px;
+            font-weight: bold;
+            color: #555;
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        .field div {
+            background: #f1f1f1;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        button {
+            width: 100%;
+            padding: 14px;
+            border-radius: 25px;
+            border: none;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        .logout {
+            background: #fff;
+            border: 1px solid #000;
+        }
+
+        /* Desktop: two-column layout using grid */
+        @media (min-width: 900px) {
+            body { align-items: stretch; padding: 0; }
+            .card {
+                padding: 40px 60px;
+            }
+            .card .layout {
+                display: grid;
+                grid-template-columns: 280px 1fr;
+                gap: 40px;
+                align-items: start;
+            }
+            .card .header { text-align: left; }
+            .avatar { margin: 0; width: 120px; height: 120px; font-size: 48px; }
+            .email { margin-bottom: 8px; }
+            .actions { display:flex; gap:12px; }
+            .actions button { width: auto; padding: 12px 18px; border-radius: 8px; }
+            .actions .primary { background:#5b5ce6; color:#fff; }
+            .actions .ghost { background:#fff; border:1px solid #000; }
+            #notifications { background:transparent;padding:0; }
+        }
+    </style>    
+</head>
+<body>
+
+<!-- Complaint Modal -->
+<div id="complaintModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:1000;justify-content:center;align-items:center;">
+    <div style="background:#fff;padding:20px;border-radius:20px;width:360px;box-shadow:0 6px 15px rgba(0,0,0,0.2);">
+        <h2 style="margin-top:0;text-align:center;">SUBMIT COMPLAINT</h2>
+        
+        <label style="font-size:12px;font-weight:bold;display:block;margin-bottom:4px;">STORE</label>
+        <select id="complaintStore" style="width:100%;padding:12px;margin:8px 0 15px;border-radius:8px;border:1px solid #ccc;">
+            <option value="">Select a store...</option>
+            <option>Store A</option>
+            <option>Store B</option>
+            <option>Store C</option>
+        </select>
+
+        <label style="font-size:12px;font-weight:bold;display:block;margin-bottom:4px;">ISSUE TITLE</label>
+        <input type="text" id="complaintTitle" placeholder="Brief description..." style="width:100%;padding:12px;margin:8px 0 15px;border-radius:8px;border:1px solid #ccc;">
+
+        <label style="font-size:12px;font-weight:bold;display:block;margin-bottom:4px;">DETAILS</label>
+        <textarea id="complaintDetails" placeholder="Describe the issue..." style="width:100%;height:100px;padding:12px;margin:8px 0 15px;border-radius:8px;border:1px solid #ccc;resize:none;"></textarea>
+
+        <button id="submitComplaintBtn" style="width:100%;padding:14px;border-radius:25px;border:none;margin-bottom:10px;font-weight:bold;cursor:pointer;background:#5b5ce6;color:#fff;">SUBMIT COMPLAINT</button>
+        <button id="closeComplaintBtn" style="width:100%;padding:14px;border-radius:25px;border:1px solid #000;background:#fff;font-weight:bold;cursor:pointer;">CANCEL</button>
+    </div>
+</div>
+
+<!-- Feedback Modal -->
+<div id="feedbackModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:1000;justify-content:center;align-items:center;">
+    <div style="background:#fff;padding:20px;border-radius:20px;width:360px;box-shadow:0 6px 15px rgba(0,0,0,0.2);">
+        <h2 style="margin-top:0;text-align:center;">Leave A Review</h2>
+        
+        <div style="display:flex;justify-content:center;flex-direction:row-reverse;font-size:25px;margin-bottom:15px;" class="star-rating">
+            <input type="radio" id="star5" name="rating" value="5" style="display:none;">
+            <label for="star5" style="color:#ccc;cursor:pointer;transition:color 0.3s;">&#9733;</label>
+
+            <input type="radio" id="star4" name="rating" value="4" style="display:none;">
+            <label for="star4" style="color:#ccc;cursor:pointer;transition:color 0.3s;">&#9733;</label>                
+            
+            <input type="radio" id="star3" name="rating" value="3" style="display:none;">
+            <label for="star3" style="color:#ccc;cursor:pointer;transition:color 0.3s;">&#9733;</label>
+
+            <input type="radio" id="star2" name="rating" value="2" style="display:none;">
+            <label for="star2" style="color:#ccc;cursor:pointer;transition:color 0.3s;">&#9733;</label>
+            
+            <input type="radio" id="star1" name="rating" value="1" style="display:none;">
+            <label for="star1" style="color:#ccc;cursor:pointer;transition:color 0.3s;">&#9733;</label>                
+        </div>
+        
+        <textarea id="feedbackText" placeholder="Write your feedback..." style="width:100%;height:100px;padding:10px;margin-bottom:15px;border:1px solid #ccc;border-radius:5px;resize:none;font-family:arial;"></textarea>
+        <button id="submitFeedbackBtn" style="width:100%;padding:14px;border-radius:25px;border:none;margin-bottom:10px;font-weight:bold;cursor:pointer;background:#5b5ce6;color:#fff;">SUBMIT REVIEW</button>
+        <button id="closeFeedbackBtn" style="width:100%;padding:14px;border-radius:25px;border:1px solid #000;background:#fff;font-weight:bold;cursor:pointer;">CANCEL</button>
+    </div>
+</div>
+
+<style>
+    .star-rating input:checked ~ label, .star-rating label:hover, .star-rating label:hover ~ label {
+        color: gold;
+    }
+</style>
+
+<div class="card">
+    <div class="layout">
+        <div class="header">
+            <div class="avatar" id="avatar">U</div>
+            <h2 id="name">Loading...</h2>
+            <div class="email" id="email"></div>
+        </div>
+
+        <div class="content">
+            <div class="field">
+                <label>Phone</label>
+                <div id="phone">-</div>
+            </div>
+
+            <div class="field">
+                <label>Address</label>
+                <div id="address">-</div>
+            </div>
+
+            <div class="field">
+                <label>Member Since</label>
+                <div id="joined">-</div>
+            </div>
+
+            <div class="field">
+                <label>Notifications</label>
+                <div id="notifications" style="background:#fff;padding:8px;border-radius:8px;">
+                    <div style="display:flex;align-items:center;justify-content:space-between">
+                        <div id="notifSummary">No new notifications</div>
+                        <div id="notifCount" style="background:#ff3b30;color:#fff;padding:4px 8px;border-radius:999px;display:none;font-size:12px">0</div>
+                    </div>
+                    <ul id="notifList" style="list-style:none;padding:8px 0;margin:0;max-height:120px;overflow:auto;display:none"></ul>
+                </div>
+            </div>
+
+            <div class="actions">
+                <button id="feedbackBtn" class="primary" type="button" data-action="feedback">Submit Feedback</button>
+                <button id="complaintBtn" class="ghost" type="button" data-action="complaint">Submit Complaint</button>
+            </div>
+
+            <div style="margin-top:18px">
+                <button class="logout" id="logoutBtn">Logout</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="module" src="JS/profile.js"></script>
+</body>
+</html>

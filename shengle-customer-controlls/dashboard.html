@@ -1,0 +1,901 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Dashboard</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            background: #f4f4f4;
+        }
+
+        .dashboard {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar Navigation */
+        .sidebar {
+            width: 250px;
+            background: #5b5ce6;
+            color: #fff;
+            padding: 20px;
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+        }
+
+        .sidebar h1 {
+            font-size: 20px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .nav-menu {
+            list-style: none;
+        }
+
+        .nav-item {
+            margin-bottom: 15px;
+        }
+
+        .nav-link {
+            display: block;
+            color: #fff;
+            text-decoration: none;
+            padding: 12px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.3s;
+            border: none;
+            font-size: 16px;
+            font-weight: 500;
+            width: 100%;
+            text-align: left;
+            background: transparent;
+        }
+
+        .nav-link:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .nav-link.active {
+            background: rgba(255, 255, 255, 0.3);
+            border-left: 4px solid #fff;
+            padding-left: 12px;
+        }
+
+        /* Main Content */
+        .main-content {
+            margin-left: 250px;
+            flex: 1;
+            padding: 40px;
+        }
+
+        .section {
+            display: none;
+            animation: fadeIn 0.3s;
+        }
+
+        .section.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        /* Profile Section */
+        .profile-card {
+            background: #fff;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 6px 15px rgba(0,0,0,0.1);
+        }
+
+        .profile-layout {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            gap: 40px;
+            align-items: start;
+        }
+
+        .profile-header {
+            text-align: left;
+        }
+
+        .avatar {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: #ddd;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+            font-weight: bold;
+            color: #555;
+            margin-bottom: 15px;
+        }
+
+        .profile-header h2 {
+            margin: 10px 0 5px;
+            font-size: 24px;
+        }
+
+        .profile-email {
+            font-size: 13px;
+            color: #777;
+            margin-bottom: 20px;
+        }
+
+        .field {
+            margin-bottom: 15px;
+        }
+
+        .field label {
+            font-size: 11px;
+            font-weight: bold;
+            color: #555;
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        .field div {
+            background: #f1f1f1;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        button {
+            padding: 12px 18px;
+            border-radius: 8px;
+            border: none;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .btn-primary {
+            background: #5b5ce6;
+            color: #fff;
+        }
+
+        .btn-primary:hover {
+            background: #4647d6;
+        }
+
+        .btn-ghost {
+            background: #fff;
+            border: 1px solid #000;
+            color: #000;
+        }
+
+        .btn-ghost:hover {
+            background: #f1f1f1;
+        }
+
+        .btn-logout {
+            background: #fff;
+            border: 1px solid #000;
+            width: 100%;
+            margin-top: 20px;
+        }
+
+        /* Notifications */
+        #notifications {
+            background: transparent;
+            padding: 0;
+        }
+
+        .notif-list {
+            list-style: none;
+            padding: 8px 0;
+            margin: 0;
+            max-height: 120px;
+            overflow: auto;
+        }
+
+        .notif-list li {
+            padding: 8px 6px;
+            border-bottom: 1px solid #eee;
+        }
+
+        /* Discounts Section */
+        .header {
+            background: #5b5ce6;
+            color: #fff;
+            padding: 20px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 1.5rem;
+            border-radius: 20px;
+            margin-bottom: 20px;
+        }
+
+        .points-card {
+            background: #fff;
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .points {
+            font-size: 2.2rem;
+            font-weight: bold;
+            color: #5b5ce6;
+            margin: 10px 0;
+        }
+
+        .section-title {
+            font-size: 1.3rem;
+            margin: 30px 0 12px;
+            font-weight: bold;
+        }
+
+        .rewards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .reward-card {
+            background: #fff;
+            border-radius: 16px;
+            padding: 16px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .reward-card h3 {
+            margin-top: 0;
+            margin-bottom: 8px;
+        }
+
+        .reward-card p {
+            flex-grow: 1;
+            margin-bottom: 10px;
+        }
+
+        .redeem-btn {
+            background: #5b5ce6;
+            color: white;
+            padding: 10px;
+            border: none;
+            border-radius: 10px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .redeem-btn:disabled {
+            background: #ddd;
+            cursor: not-allowed;
+        }
+
+        .tier {
+            background: #fff;
+            padding: 16px;
+            border-radius: 16px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+
+        .progress-bar {
+            background: #eee;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 10px;
+            height: 14px;
+        }
+
+        .progress {
+            height: 100%;
+            background: #5b5ce6;
+            width: 0%;
+        }
+
+        /* Modals */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: #fff;
+            padding: 20px;
+            border-radius: 20px;
+            width: 360px;
+            box-shadow: 0 6px 15px rgba(0,0,0,0.2);
+        }
+
+        .modal-content h2 {
+            margin-top: 0;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            font-size: 12px;
+            font-weight: bold;
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+        }
+
+        .form-group textarea {
+            height: 100px;
+            resize: none;
+        }
+
+        .star-rating {
+            display: flex;
+            justify-content: center;
+            flex-direction: row-reverse;
+            font-size: 25px;
+            gap: 5px;
+            margin-bottom: 15px;
+        }
+
+        .star-rating input {
+            display: none;
+        }
+
+        .star-rating label {
+            color: #ccc;
+            cursor: pointer;
+            transition: color 0.3s;
+        }
+
+        .star-rating input:checked ~ label,
+        .star-rating label:hover,
+        .star-rating label:hover ~ label {
+            color: gold;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .modal-actions button {
+            flex: 1;
+            padding: 14px;
+            border-radius: 8px;
+            border: none;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .dashboard {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                width: 100%;
+                height: auto;
+                position: static;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 15px;
+            }
+
+            .sidebar h1 {
+                margin-bottom: 0;
+                font-size: 18px;
+            }
+
+            .nav-menu {
+                display: flex;
+                gap: 10px;
+            }
+
+            .nav-item {
+                margin-bottom: 0;
+            }
+
+            .nav-link {
+                padding: 8px 12px;
+                font-size: 14px;
+            }
+
+            .main-content {
+                margin-left: 0;
+                padding: 20px;
+            }
+
+            .profile-layout {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+
+            .avatar {
+                width: 80px;
+                height: 80px;
+                font-size: 32px;
+            }
+
+            .profile-header h2 {
+                font-size: 20px;
+            }
+
+            .rewards-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="dashboard">
+    <!-- Sidebar Navigation -->
+    <div class="sidebar">
+        <h1>🛵 Delivery</h1>
+        <ul class="nav-menu">
+            <li class="nav-item">
+                <button class="nav-link active" onclick="switchSection('profile')">👤 Profile</button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link" onclick="switchSection('discounts')">🎁 Rewards</button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link" onclick="switchSection('feedback')">⭐ Feedback</button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link" onclick="switchSection('complaints')">📢 Complaints</button>
+            </li>
+        </ul>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+
+        <!-- Profile Section -->
+        <div id="profile" class="section active">
+            <div class="profile-card">
+                <div class="profile-layout">
+                    <div class="profile-header">
+                        <div class="avatar" id="avatar">U</div>
+                        <h2 id="name">Loading...</h2>
+                        <div class="profile-email" id="email"></div>
+                    </div>
+
+                    <div>
+                        <div class="field">
+                            <label>Phone</label>
+                            <div id="phone">-</div>
+                        </div>
+
+                        <div class="field">
+                            <label>Address</label>
+                            <div id="address">-</div>
+                        </div>
+
+                        <div class="field">
+                            <label>Member Since</label>
+                            <div id="joined">-</div>
+                        </div>
+
+                        <div class="field">
+                            <label>Notifications</label>
+                            <div id="notifications">
+                                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+                                    <div id="notifSummary">No new notifications</div>
+                                    <div id="notifCount" style="background:#ff3b30;color:#fff;padding:4px 8px;border-radius:999px;display:none;font-size:12px">0</div>
+                                </div>
+                                <ul id="notifList" class="notif-list" style="display:none;"></ul>
+                            </div>
+                        </div>
+
+                        <div class="actions">
+                            <button class="btn-primary" onclick="openModal('feedbackModal')">Submit Feedback</button>
+                            <button class="btn-ghost" onclick="openModal('complaintModal')">Submit Complaint</button>
+                        </div>
+
+                        <button class="btn-logout" id="logoutBtn">Logout</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Rewards/Discounts Section -->
+        <div id="discounts" class="section">
+            <div class="header">Rewards & Discounts</div>
+
+            <div class="points-card">
+                <h3>Your Points</h3>
+                <div class="points" id="points">0</div>
+                <small>Earn 10 points for every $1 spent</small>
+            </div>
+
+            <div class="section-title">Redeem Your Rewards</div>
+            <div class="rewards-grid">
+
+                <div class="reward-card">
+                    <h3>Free Fries</h3>
+                    <p>Redeem for a medium fries.</p>
+                    <strong>150 points</strong>
+                    <button class="redeem-btn" onclick="redeem(150)">Redeem</button>
+                </div>
+
+                <div class="reward-card">
+                    <h3>Free Drink</h3>
+                    <p>Redeem for any soft drink.</p>
+                    <strong>200 points</strong>
+                    <button class="redeem-btn" onclick="redeem(200)">Redeem</button>
+                </div>
+
+                <div class="reward-card">
+                    <h3>Burger Discount</h3>
+                    <p>$3 off any burger.</p>
+                    <strong>300 points</strong>
+                    <button class="redeem-btn" onclick="redeem(300)">Redeem</button>
+                </div>
+
+                <div class="reward-card">
+                    <h3>Free Meal</h3>
+                    <p>Redeem for a full meal set.</p>
+                    <strong>500 points</strong>
+                    <button class="redeem-btn" onclick="redeem(500)">Redeem</button>
+                </div>
+
+            </div>
+
+            <div class="section-title">Membership Tier</div>
+            <div class="tier">
+                <strong id="tierName">Silver</strong>
+                <div class="progress-bar">
+                    <div class="progress" id="tierProgress"></div>
+                </div>
+                <small id="tierText">0 / 500 points to Gold</small>
+            </div>
+        </div>
+
+        <!-- Feedback Section -->
+        <div id="feedback" class="section">
+            <div style="background:#fff;border-radius:20px;padding:40px;box-shadow:0 6px 15px rgba(0,0,0,0.1);">
+                <h2 style="text-align:center;margin-top:0;">Leave A Review</h2>
+                <p style="text-align:center;color:#777;margin-bottom:20px;">Share your experience with us</p>
+                <div style="max-width:400px;margin:0 auto;">
+                    <div style="text-align:center;margin-bottom:20px;">
+                        <button class="btn-primary" onclick="openModal('feedbackModal')" style="width:100%;">Submit Feedback</button>
+                    </div>
+                    <p style="text-align:center;color:#999;font-size:14px;">Your feedback helps us improve our service</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Complaints Section -->
+        <div id="complaints" class="section">
+            <div style="background:#fff;border-radius:20px;padding:40px;box-shadow:0 6px 15px rgba(0,0,0,0.1);">
+                <h2 style="text-align:center;margin-top:0;">Submit a Complaint</h2>
+                <p style="text-align:center;color:#777;margin-bottom:20px;">We take your feedback seriously</p>
+                <div style="max-width:400px;margin:0 auto;">
+                    <div style="text-align:center;margin-bottom:20px;">
+                        <button class="btn-primary" onclick="openModal('complaintModal')" style="width:100%;">Submit Complaint</button>
+                    </div>
+                    <p style="text-align:center;color:#999;font-size:14px;">Our team will review and respond within 24 hours</p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- Complaint Modal -->
+<div id="complaintModal" class="modal">
+    <div class="modal-content">
+        <h2>SUBMIT COMPLAINT</h2>
+        
+        <div class="form-group">
+            <label>STORE</label>
+            <select id="complaintStore">
+                <option value="">Select a store...</option>
+                <option>Store A</option>
+                <option>Store B</option>
+                <option>Store C</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>ISSUE TITLE</label>
+            <input type="text" id="complaintTitle" placeholder="Brief description...">
+        </div>
+
+        <div class="form-group">
+            <label>DETAILS</label>
+            <textarea id="complaintDetails" placeholder="Describe the issue..."></textarea>
+        </div>
+
+        <div class="modal-actions">
+            <button class="btn-primary" onclick="submitComplaint()">SUBMIT</button>
+            <button class="btn-ghost" onclick="closeModal('complaintModal')">CANCEL</button>
+        </div>
+    </div>
+</div>
+
+<!-- Feedback Modal -->
+<div id="feedbackModal" class="modal">
+    <div class="modal-content">
+        <h2>Leave A Review</h2>
+        
+        <div style="text-align:center;margin-bottom:20px;">
+            <div class="star-rating">
+                <input type="radio" id="star5" name="rating" value="5">
+                <label for="star5">&#9733;</label>
+
+                <input type="radio" id="star4" name="rating" value="4">
+                <label for="star4">&#9733;</label>                
+                
+                <input type="radio" id="star3" name="rating" value="3">
+                <label for="star3">&#9733;</label>
+
+                <input type="radio" id="star2" name="rating" value="2">
+                <label for="star2">&#9733;</label>
+                
+                <input type="radio" id="star1" name="rating" value="1">
+                <label for="star1">&#9733;</label>                
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <textarea id="feedbackText" placeholder="Write your feedback..."></textarea>
+        </div>
+
+        <div class="modal-actions">
+            <button class="btn-primary" onclick="submitFeedback()">SUBMIT</button>
+            <button class="btn-ghost" onclick="closeModal('feedbackModal')">CANCEL</button>
+        </div>
+    </div>
+</div>
+
+<script type="module">
+    import { auth, db } from "../../../firebase.js";
+    import { onAuthStateChanged, signOut } 
+      from "https://www.gstatic.com/firebasejs/12.8.0/firebase-auth.js";
+    import { doc, getDoc, collection, query, where, orderBy, getDocs, updateDoc } 
+      from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
+
+    let currentUser = null;
+    let currentPoints = 0;
+
+    // Profile Elements
+    const nameEl = document.getElementById("name");
+    const emailEl = document.getElementById("email");
+    const phoneEl = document.getElementById("phone");
+    const addressEl = document.getElementById("address");
+    const joinedEl = document.getElementById("joined");
+    const avatarEl = document.getElementById("avatar");
+    const logoutBtn = document.getElementById("logoutBtn");
+    const notifCountEl = document.getElementById("notifCount");
+    const notifListEl = document.getElementById("notifList");
+    const notifSummaryEl = document.getElementById("notifSummary");
+
+    onAuthStateChanged(auth, async (user) => {
+        if (!user) {
+            window.location.href = '../../../user-account-management-Joseph/HTML/account.html';
+            return;
+        }
+
+        currentUser = user;
+        emailEl.textContent = user.email;
+        avatarEl.textContent = user.email[0].toUpperCase();
+
+        // Load profile data
+        const userRef = doc(db, "users", user.uid);
+        const snap = await getDoc(userRef);
+
+        if (snap.exists()) {
+            const data = snap.data();
+            nameEl.textContent = data.name || "User";
+            phoneEl.textContent = data.phone || "-";
+            addressEl.textContent = data.address || "-";
+            currentPoints = data.points || 0;
+
+            if (data.createdAt?.toDate) {
+                joinedEl.textContent = data.createdAt.toDate().toDateString();
+            }
+        } else {
+            nameEl.textContent = "User";
+        }
+
+        loadNotifications(user.uid).catch((e) => console.warn("Unable to load notifications", e));
+        updateRewardsUI();
+    });
+
+    logoutBtn.addEventListener("click", async () => {
+        await signOut(auth);
+        window.location.href = '../../../user-account-management-Joseph/HTML/account.html';
+    });
+
+    async function loadNotifications(uid) {
+        try {
+            const notifsCol = collection(db, 'notifications');
+            let q;
+            try {
+                q = query(notifsCol, where('userId', '==', uid), orderBy('createdAt', 'desc'));
+            } catch (e) {
+                q = query(notifsCol, where('userId', '==', uid));
+            }
+
+            const snap = await getDocs(q);
+            const items = [];
+
+            snap.forEach(docSnap => {
+                const d = docSnap.data();
+                items.push({ id: docSnap.id, ...d });
+            });
+
+            if (items.length === 0) {
+                notifSummaryEl.textContent = 'No new notifications';
+                notifCountEl.style.display = 'none';
+                notifListEl.style.display = 'none';
+                return;
+            }
+
+            notifSummaryEl.textContent = `${items.length} new notification${items.length>1? 's':''}`;
+            notifCountEl.textContent = String(items.length);
+            notifCountEl.style.display = 'inline-block';
+            notifListEl.innerHTML = '';
+            notifListEl.style.display = 'block';
+
+            items.forEach(it => {
+                const li = document.createElement('li');
+                li.textContent = it.title || it.message || 'Notification';
+                notifListEl.appendChild(li);
+            });
+        } catch (err) {
+            console.error('Error loading notifications', err);
+        }
+    }
+
+    function updateRewardsUI() {
+        document.getElementById('points').innerText = currentPoints;
+
+        let tierName = 'Silver';
+        let progressPercent = (currentPoints / 500) * 100;
+        let tierText = `${currentPoints} / 500 points to Gold`;
+
+        if (currentPoints >= 500) {
+            tierName = 'Gold';
+            progressPercent = Math.min((currentPoints - 500) / 500 * 100, 100);
+            tierText = `${currentPoints} / 1000 points to Platinum`;
+        }
+
+        if (currentPoints >= 1000) {
+            tierName = 'Platinum';
+            progressPercent = 100;
+            tierText = 'Maximum tier reached';
+        }
+
+        document.getElementById('tierName').innerText = tierName;
+        document.getElementById('tierText').innerText = tierText;
+        document.getElementById('tierProgress').style.width = progressPercent + '%';
+
+        document.querySelectorAll('.redeem-btn').forEach(btn => {
+            const cost = parseInt(btn.previousElementSibling.innerText);
+            btn.disabled = currentPoints < cost;
+        });
+    }
+
+    // Global functions
+    window.switchSection = function(sectionId) {
+        document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+        document.querySelectorAll('.nav-link').forEach(n => n.classList.remove('active'));
+        
+        document.getElementById(sectionId).classList.add('active');
+        event.target.classList.add('active');
+    };
+
+    window.openModal = function(modalId) {
+        document.getElementById(modalId).classList.add('active');
+    };
+
+    window.closeModal = function(modalId) {
+        document.getElementById(modalId).classList.remove('active');
+    };
+
+    window.redeem = async function(cost) {
+        if (currentPoints >= cost) {
+            try {
+                if (!currentUser) {
+                    alert("Not authenticated");
+                    return;
+                }
+
+                currentPoints -= cost;
+                const userRef = doc(db, "users", currentUser.uid);
+                await updateDoc(userRef, { points: currentPoints });
+
+                alert('Reward redeemed! 🎉');
+                updateRewardsUI();
+            } catch (err) {
+                console.error("Error redeeming reward:", err);
+                alert("Failed to redeem reward. Please try again.");
+                updateRewardsUI();
+            }
+        }
+    };
+
+    window.submitComplaint = function() {
+        const store = document.getElementById('complaintStore').value;
+        const title = document.getElementById('complaintTitle').value;
+        const details = document.getElementById('complaintDetails').value;
+        
+        if (store && title.trim() && details.trim()) {
+            console.log('Complaint submitted:', { store, title, details });
+            alert('Thank you for your complaint. We will review it shortly.');
+            closeModal('complaintModal');
+            document.getElementById('complaintStore').value = '';
+            document.getElementById('complaintTitle').value = '';
+            document.getElementById('complaintDetails').value = '';
+        } else {
+            alert('Please fill all fields');
+        }
+    };
+
+    window.submitFeedback = function() {
+        const rating = document.querySelector('input[name="rating"]:checked')?.value || '';
+        const text = document.getElementById('feedbackText').value;
+        
+        if (text.trim()) {
+            console.log('Feedback submitted:', { rating, text });
+            alert('Thank you for your feedback!');
+            closeModal('feedbackModal');
+            document.getElementById('feedbackText').value = '';
+            document.querySelectorAll('input[name="rating"]').forEach(r => r.checked = false);
+        } else {
+            alert('Please enter feedback');
+        }
+    };
+</script>
+
+</body>
+</html>

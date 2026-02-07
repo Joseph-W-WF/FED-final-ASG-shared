@@ -1,16 +1,4 @@
-// ========================================
-// queue.compat.js
-// ----------------------------------------
-// Your friend's queueTicketSystem.js expects:
-//   - loadDB(), saveDB(), makeId()
-//   - db.queues = [{ stallId, tickets: [] }, ...]
-//
-// This file provides those helpers and stores queue data in localStorage so
-// ticket numbers survive refresh.
-//
-// SCRIPT ORDER (recommended):
-//   utils.js -> data.js -> queue.compat.js -> queueTicketSystem.js -> rest
-// ========================================
+
 
 window.FED = window.FED || {};
 

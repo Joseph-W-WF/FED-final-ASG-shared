@@ -155,6 +155,94 @@
     return /^\d{8}$/.test(s);
   }
 
+  // Firestore wrappers 
+function hasRemoteUsers() {
+  return !!(window.DB?.users?.getByCredential && window.DB?.users?.create);
+}
+
+async function loginAsync(role, usernameOrEmailOrPhone, password, neaId) {
+  if (!hasRemoteUsers()) return login(role, usernameOrEmailOrPhone, password, neaId);
+
+  let user = null;
+
+  if (role === "NEA") {
+    if (!neaId) return { ok: false, msg: "NEA ID is required." };
+    user = await window.DB.users.getNeaUser(neaId, usernameOrEmailOrPhone);
+  } else {
+    user = await window.DB.users.getByCredential(usernameOrEmailOrPhone, role);
+  }
+
+  if (!user) return { ok: false, msg: "Account not found." };
+  if ((user.password || "") !== password) return { ok: false, msg: "Incorrect password." };
+
+  setSessionUser({ id: user.id, role: user.role, username: user.username || user.email || user.phone || user.id });
+  return { ok: true, user };
+}
+
+async function registerCustomerAsync(fullName, email, phone, password) {
+  if (!hasRemoteUsers()) return registerAccount("CUSTOMER", fullName, email, phone, password);
+
+  // re-use your existing validations
+  if (!fullName || fullName.trim().length < 2) return { ok: false, msg: "Full name is required." };
+  if (!isEmail(email)) return { ok: false, msg: "Invalid email." };
+  if (!isPhone(phone)) return { ok: false, msg: "Invalid phone number." };
+  if (!password || password.length < 6) return { ok: false, msg: "Password must be at least 6 chars." };
+
+  // prevent duplicates (email/phone)
+  const existsEmail = await window.DB.users.getByCredential(email, "CUSTOMER");
+  const existsPhone = await window.DB.users.getByCredential(phone, "CUSTOMER");
+  if (existsEmail || existsPhone) return { ok: false, msg: "Email/phone already used." };
+
+  // username generation (ensure unique)
+  const base = (email.split("@")[0] || "user").replace(/[^a-z0-9]/gi, "").slice(0, 12) || "user";
+  let username = base;
+  let i = 1;
+  while (await window.DB.users.getByUsernameLower(username.toLowerCase())) {
+    username = `${base}${i++}`;
+  }
+
+  const user = {
+    id: makeId("c"),
+    role: "CUSTOMER",
+    fullName: fullName.trim(),
+    email: email.trim(),
+    phone: phone.trim(),
+    username,
+    password,
+  };
+
+  await window.DB.users.create(user);
+
+  // keep your local DB too (so nothing breaks)
+  const local = loadDB();
+  local.users.push(user);
+  saveDB(local);
+
+  return { ok: true, user };
+}
+
+async function requestOtpAsync(mode, value) {
+  // mode: "email" or "phone"
+  if (!window.DB?.passwordResets?.create || !hasRemoteUsers()) return requestOtp(mode, value);
+
+  const user = await window.DB.users.getByCredential(value, "CUSTOMER");
+  if (!user) return { ok: false, msg: "No matching customer account." };
+
+  const otp = String(Math.floor(100000 + Math.random() * 900000));
+  const expiresAt = Date.now() + 5 * 60 * 1000;
+
+  const resetId = await window.DB.passwordResets.create({
+    userId: user.id,
+    mode,
+    token: otp,
+    expiresAt,
+  });
+
+  // keep your existing recoveryState usage
+  recoveryState = { userId: user.id, resetId, otp, expiresAt, verified: false };
+  return { ok: true, otp };
+}
+
   // ---------------------------
   // DB helpers
   // ---------------------------
@@ -483,39 +571,49 @@
     });
 
     // Forms
-    on("signinForm", "submit", function (e) {
+        on("signinForm", "submit", function (e) {
       e.preventDefault();
       var role = getSessionRole();
       var neaId = (role === "NEA" && $("siNeaId")) ? $("siNeaId").value : "";
-      var res = login(role, $("siUsername").value, $("siPassword").value, neaId);
-      showNotice(res.msg, res.ok ? "ok" : "error");
+
+      loginAsync(role, $("siUsername").value, $("siPassword").value, neaId)
+        .then(function (res) {
+          showNotice(res.msg, res.ok ? "ok" : "error");
+        });
     });
 
-    on("registerForm", "submit", function (e) {
+
+        on("registerForm", "submit", function (e) {
       e.preventDefault();
       var role = getSessionRole();
-      var res = registerAccount(role, $("rgName").value, $("rgEmail").value, $("rgPhone").value, $("rgPassword").value);
 
-      showNotice(res.msg, res.ok ? "ok" : "error");
-      if (res.ok) {
-        setActiveView("view-signin", "Sign In");
-        $("siUsername").value = res.user.username;
-        $("siPassword").value = "";
-      }
+      registerCustomerAsync(role, $("rgName").value, $("rgEmail").value, $("rgPhone").value, $("rgPassword").value)
+        .then(function (res) {
+          showNotice(res.msg, res.ok ? "ok" : "error");
+          if (res.ok) {
+            setActiveView("view-signin", "Sign In");
+            $("siUsername").value = res.user.username;
+            $("siPassword").value = "";
+          }
+        });
     });
 
-    on("recoveryForm", "submit", function (e) {
+
+        on("recoveryForm", "submit", function (e) {
       e.preventDefault();
       var role = getSessionRole();
       if (role !== "CUSTOMER") return showNotice("Recovery is only for customers.", "error");
 
-      var res = requestOtp(role, $("rcValue").value, recoveryMode);
-      showNotice(res.msg, res.ok ? "ok" : "error");
-      if (res.ok) {
-        setActiveView("view-otp", "OTP");
-        $("otpValue").value = "";
-      }
+      requestOtpAsync(role, $("rcValue").value, recoveryMode)
+        .then(function (res) {
+          showNotice(res.msg, res.ok ? "ok" : "error");
+          if (res.ok) {
+            setActiveView("view-otp", "OTP");
+            $("otpValue").value = "";
+          }
+        });
     });
+
 
     on("otpForm", "submit", function (e) {
       e.preventDefault();
@@ -524,15 +622,20 @@
       if (res.ok) setActiveView("view-reset", "Reset");
     });
 
-    on("resetForm", "submit", function (e) {
+        on("resetForm", "submit", function (e) {
       e.preventDefault();
       var res = resetPassword($("rsPassword").value, $("rsConfirm").value);
       showNotice(res.msg, res.ok ? "ok" : "error");
+
       if (res.ok) {
+        // NEW: also sync to Firestore if available
+        syncPasswordToFirestoreIfPossible(recoveryState.userId, $("rsPassword").value);
+
         setActiveView("view-signin", "Sign In");
         $("siPassword").value = "";
       }
     });
+
 
     on("btnBackRecovery", "click", function () {
       setActiveView("view-recovery", "Recovery");

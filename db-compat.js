@@ -1,40 +1,74 @@
 // JS/db-compat.js
 import * as FS from "./firestore-service.js";
 
-// Create/ensure global DB object
 window.DB = window.DB || {};
 
-// --------------------
-// Core / Stalls
-// --------------------
+// Regulatory Compliance (existing)
 window.DB.getStalls = FS.getStalls;
 window.DB.getStallById = FS.getStallById;
 
-// --------------------
-// NEA - Violation Catalog
-// --------------------
 window.DB.getViolationCatalog = FS.getViolationCatalog;
 window.DB.addViolationCatalogItem = FS.addViolationCatalogItem;
+window.DB.updateViolationCatalogItem = FS.updateViolationCatalogItem;
+window.DB.deleteViolationCatalogItem = FS.deleteViolationCatalogItem;
 
-// --------------------
-// NEA - Inspections
-// --------------------
+window.DB.getInspectionsByStallId = FS.getInspectionsByStallId;
 window.DB.addInspection = FS.addInspection;
-window.DB.getInspectionsByStall = FS.getInspectionsByStall;
+window.DB.updateInspection = FS.updateInspection;
+window.DB.deleteInspection = FS.deleteInspection;
+window.DB.getInspectionById = FS.getInspectionById;
 
 window.DB.addInspectionViolations = FS.addInspectionViolations;
-window.DB.getInspectionViolations = FS.getInspectionViolations;
 
-// --------------------
-// NEA - Penalties
-// --------------------
+window.DB.getPenaltiesByStallId = FS.getPenaltiesByStallId;
 window.DB.addPenalty = FS.addPenalty;
-window.DB.getPenaltiesByStall = FS.getPenaltiesByStall;
 
-// --------------------
-// NEA - Scheduled Inspections (NEW)
-// --------------------
+window.DB.getScheduledInspectionsByStallId = FS.getScheduledInspectionsByStallId;
 window.DB.addScheduledInspection = FS.addScheduledInspection;
-window.DB.getScheduledInspections = FS.getScheduledInspections;
-window.DB.markScheduledCompleted = FS.markScheduledCompleted;
+window.DB.updateScheduledInspection = FS.updateScheduledInspection;
+window.DB.deleteScheduledInspection = FS.deleteScheduledInspection;
 
+// NEW: Vendor Mgmt (menu + rentals)
+window.DB.menu = {
+  listByStall: FS.getMenuItemsByStallId,
+  add: FS.addMenuItem,
+  update: FS.updateMenuItem,
+  remove: FS.deleteMenuItem,
+};
+
+window.DB.rentals = {
+  listByStall: FS.getRentalAgreementsByStallId,
+  add: FS.addRentalAgreement,
+  update: FS.updateRentalAgreement,
+  remove: FS.deleteRentalAgreement,
+};
+
+// NEW: Orders (customer + vendor)
+window.DB.orders = {
+  upsert: FS.upsertOrder,
+  updateStatus: FS.updateOrderStatus,
+  getByCustomerKey: FS.getOrdersByCustomerKey,
+  listenByCustomer: FS.listenOrdersByCustomerKey,
+  getByStallId: FS.getOrdersByStallId,
+  listenByStall: FS.listenOrdersByStallId,
+};
+
+// NEW: Users (account.js)
+window.DB.users = {
+  getById: FS.getUserById,
+  getByCredential: FS.getUserByCredential,
+  getByUsernameLower: FS.getUserByUsernameLower,
+  getNeaUser: FS.getNeaUser,
+  create: FS.createUser,
+  updatePassword: FS.updateUserPassword,
+};
+
+// NEW: OTP reset
+window.DB.passwordResets = {
+  create: FS.createPasswordReset,
+  getById: FS.getPasswordResetById,
+  markUsed: FS.markPasswordResetUsed,
+};
+
+// (optional debug)
+window.DB._fs = FS;

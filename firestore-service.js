@@ -460,65 +460,74 @@ export async function getVendorOrdersByStallId(stallId) {
   const ordersSnap = await getDocs(qOrders);
   const orders = ordersSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
 
-  orders.sort((a, b) => new Date(b.createdDateTime || 0) - new Date(a.createdDateTime || 0));
-  if (orders.length === 0) return [];
+  const pickDateISO = (o) =>
+    o.createdDateTime ||
+    o.createdDate ||
+    o.createdAtISO ||
+    toISO(o.createdAt) ||
+    "";
 
-  const orderIds = orders.map((o) => o.id);
+  // newest first
+  orders.sort((a, b) => new Date(pickDateISO(b) || 0) - new Date(pickDateISO(a) || 0));
 
-  const items = await getDocsByInQuery("orderItems", "orderId", orderIds);
-  const pays = await getDocsByInQuery("payments", "orderId", orderIds);
+  const mapOrderStatus = (s) => {
+    const v = String(s || "").toUpperCase();
+    if (v === "COLLECTED" || v === "COMPLETED") return "Collected";
+    if (v === "CANCELLED" || v === "CANCELED" || v === "FAILED") return "cancelled";
+    return "active";
+  };
 
-  const menuItemIds = [...new Set(items.map((it) => it.menuItemId).filter(Boolean))];
-  let menuMap = {};
-  for (let i = 0; i < menuItemIds.length; i += 10) {
-    const chunk = menuItemIds.slice(i, i + 10);
-    const snaps = await Promise.all(
-      chunk.map(async (mid) => {
-        const ref = doc(db, "menuItems", mid);
-        const s = await getDoc(ref);
-        return s.exists() ? { id: s.id, ...s.data() } : null;
-      })
-    );
-    snaps.filter(Boolean).forEach((mi) => (menuMap[mi.id] = mi));
-  }
+  const mapPaymentMethod = (m) => {
+    const v = String(m || "").toUpperCase();
+    if (v === "PAYNOW" || v === "E-WALLET" || v === "EWALLET") return "PayNow";
+    if (v === "CASH") return "Cash";
+    if (v === "CARD" || v === "CREDIT" || v === "DEBIT") return "Card";
+    return m || "-";
+  };
 
-  const itemsByOrder = {};
-  for (const it of items) {
-    const oid = it.orderId;
-    if (!itemsByOrder[oid]) itemsByOrder[oid] = [];
-    itemsByOrder[oid].push(it);
-  }
-
-  const payByOrder = {};
-  for (const p of pays) {
-    if (!payByOrder[p.orderId]) payByOrder[p.orderId] = p;
-  }
+  const formatOrderNumber = (orderId) => {
+    const m = String(orderId || "").match(/\d+/);
+    return m ? m[0] : String(orderId || "-");
+  };
 
   return orders.map((o) => {
-    const oi = (itemsByOrder[o.id] || []).slice().sort((a, b) => (b.lineTotal || 0) - (a.lineTotal || 0));
-    const first = oi[0];
+    const embedded = Array.isArray(o.items) ? o.items : [];
+    const first = embedded[0] || null;
 
-    const menu = first ? menuMap[first.menuItemId] : null;
+    const count = embedded.length;
+    const firstName = first?.name || "—";
+    const firstQty = Number(first?.qty || 1);
 
-    let itemLabel = menu?.name || "—";
-    if (oi.length > 1) itemLabel = `${itemLabel} (+${oi.length - 1} more)`;
+    let itemLabel = firstName;
+    if (count > 1) itemLabel = `${itemLabel} (+${count - 1} more)`;
 
-    const pay = payByOrder[o.id];
-    const customerName = o.customerName || o.customerIdOrGuestId || "Customer";
+    // total from order doc, else compute from items
+    let total =
+      Number(o.totalAmount ?? o.total ?? o.totalPrice ?? 0);
+
+    if (!Number.isFinite(total) || total <= 0) {
+      total = embedded.reduce((sum, it) => {
+        const line = Number(
+          it.lineTotal ?? (Number(it.unitPrice || 0) * Number(it.qty || 1))
+        );
+        return sum + (Number.isFinite(line) ? line : 0);
+      }, 0);
+    }
 
     return {
       orderId: o.id,
       orderNumber: formatOrderNumber(o.id),
-      customerName,
+      customerName: o.customerName || o.customerIdOrGuestId || "Customer",
       status: mapOrderStatus(o.status),
-      date: o.createdDateTime || "",
+      date: pickDateISO(o),
       item: itemLabel,
-      quantity: first?.qty || 1,
-      price: Number(o.totalAmount || first?.lineTotal || 0),
-      paymentMethod: mapPaymentMethod(pay?.method),
+      quantity: firstQty,
+      price: Number(total || 0),
+      paymentMethod: mapPaymentMethod(o.paymentMethod),
     };
   });
 }
+
 
 /* -------------------- Users (Account system) -------------------- */
 export async function getUserById(userId) {

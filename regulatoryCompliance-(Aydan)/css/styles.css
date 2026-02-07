@@ -326,7 +326,3 @@ body.sidebar-collapsed .content {
   box-shadow: 0 10px 24px rgba(17,24,39,0.12);
 }
 
-/* Optional: only show the button when sidebar is collapsed */
-body:not(.sidebar-collapsed) #sidebarToggleBtn {
-  display: none;
-}

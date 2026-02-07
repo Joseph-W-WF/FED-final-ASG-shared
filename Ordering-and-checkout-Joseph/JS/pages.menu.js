@@ -9,6 +9,80 @@ FED.pages.menu = (() => {
   const menuPageTitleEl = document.getElementById("menuPageTitle");
   const menuListEl = document.getElementById("menuList");
 
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+  // customer stall ids -> firestore stall ids
+  function mapToFirestoreStallId(customerStallId) {
+    const map = {
+      stall_1: "s1",
+      stall_2: "s2",
+      stall_3: "s3",
+      stall_4: "s4",
+      stall_5: "s5",
+    };
+    return map[customerStallId] || null;
+  }
+
+  async function waitForDB(maxTries = 15) {
+    for (let i = 0; i < maxTries; i++) {
+      if (window.DB && (DB.getMenuItemsByStallId || DB.getMenuItems)) return true;
+      await sleep(200);
+    }
+    return false;
+  }
+
+  // Merge Firestore menu into the existing static stall.menu
+  // - keeps your existing addons for seed items
+  // - adds new Firestore items so customer can see them
+  async function mergeFirestoreMenuIntoStall(stall) {
+    if (!stall) return;
+
+    const ok = await waitForDB();
+    if (!ok) return;
+
+    if (!DB.getMenuItemsByStallId) return;
+
+    const fsStallId = mapToFirestoreStallId(stall.id);
+    if (!fsStallId) return;
+
+    const fsItems = await DB.getMenuItemsByStallId(fsStallId);
+    if (!Array.isArray(fsItems) || fsItems.length === 0) return;
+
+    const existingByName = new Map(
+      (stall.menu || []).map((x) => [String(x.name || "").toLowerCase().trim(), x])
+    );
+
+    const merged = [...(stall.menu || [])];
+
+    fsItems.forEach((mi) => {
+      const nameKey = String(mi.name || "").toLowerCase().trim();
+      if (!nameKey) return;
+
+      // If already exists in seed menu, just update price/tags (keep addons)
+      const existing = existingByName.get(nameKey);
+      if (existing) {
+        existing.price = Number(mi.price || existing.price || 0);
+        existing.tags =
+          Array.isArray(mi.cuisines) ? mi.cuisines :
+          Array.isArray(mi.tags) ? mi.tags :
+          existing.tags || [];
+        return;
+      }
+
+      // Otherwise add as a NEW item
+      merged.push({
+        id: String(mi.id), // Firestore doc id
+        name: mi.name || "Unnamed",
+        price: Number(mi.price || 0),
+        tags: Array.isArray(mi.cuisines) ? mi.cuisines : [],
+        addons: [], // vendor items don’t have addons by default
+        img: mi.imageUrl || mi.img || "",
+      });
+    });
+
+    stall.menu = merged;
+  }
+
   function renderMenu() {
     const stall = STALLS.find(s => s.id === FED.state.selectedStallId);
 
@@ -22,14 +96,14 @@ FED.pages.menu = (() => {
     menuTitleEl.textContent = `${stall.name} — Menu`;
     menuPageTitleEl.textContent = stall.name;
 
-    let items = [...stall.menu];
+    let items = [...(stall.menu || [])];
 
     // search
     const q = (FED.state.menuSearch || "").toLowerCase().trim();
     if (q) {
       items = items.filter(i =>
-        i.name.toLowerCase().includes(q) ||
-        (i.tags || []).some(t => t.toLowerCase().includes(q))
+        (i.name || "").toLowerCase().includes(q) ||
+        (i.tags || []).some(t => (t || "").toLowerCase().includes(q))
       );
     }
 
@@ -37,7 +111,7 @@ FED.pages.menu = (() => {
     const sort = FED.state.menuSort;
     if (sort === "priceAsc") items.sort((a,b) => a.price - b.price);
     if (sort === "priceDesc") items.sort((a,b) => b.price - a.price);
-    if (sort === "nameAsc") items.sort((a,b) => a.name.localeCompare(b.name));
+    if (sort === "nameAsc") items.sort((a,b) => (a.name || "").localeCompare(b.name || ""));
 
     if (items.length === 0) {
       menuListEl.innerHTML = `<div class="muted">No items found.</div>`;
@@ -46,7 +120,6 @@ FED.pages.menu = (() => {
 
     menuListEl.innerHTML = items.map(item => {
       const tagHtml = (item.tags || []).map(t => `<span class="tag">${escapeHTML(t)}</span>`).join("");
-
       const imgSrc = item.img || foodPlaceholder(item.name);
 
       const addonHtml = (item.addons || []).map(a => {
@@ -110,7 +183,8 @@ FED.pages.menu = (() => {
       btn.addEventListener("click", () => {
         const itemId = btn.dataset.add;
         const qty = Number(document.getElementById(`qty_${itemId}`).textContent || "1");
-        const selectedItem = stall.menu.find(m => m.id === itemId);
+        const stall = STALLS.find(s => s.id === FED.state.selectedStallId);
+        const selectedItem = stall?.menu?.find(m => String(m.id) === String(itemId));
         if (!selectedItem) return;
 
         const card = btn.closest(`[data-itemcard="${itemId}"]`);
@@ -124,6 +198,15 @@ FED.pages.menu = (() => {
         setTimeout(() => (btn.textContent = "Add to cart"), 600);
       });
     });
+  }
+
+  async function refreshMenuRoute() {
+    const stall = STALLS.find(s => s.id === FED.state.selectedStallId);
+    if (!stall) return renderMenu();
+
+    menuListEl.innerHTML = `<div class="muted">Loading latest menu…</div>`;
+    await mergeFirestoreMenuIntoStall(stall);
+    renderMenu();
   }
 
   function init() {
@@ -141,7 +224,10 @@ FED.pages.menu = (() => {
       renderMenu();
     });
 
-    FED.router.registerRoute("menu", () => renderMenu());
+    // IMPORTANT: load Firestore menu when entering the menu page
+    FED.router.registerRoute("menu", () => {
+      refreshMenuRoute();
+    });
   }
 
   return { init };

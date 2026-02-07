@@ -2,11 +2,11 @@
 <html>
 <head>
   <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="stylesheet" href="../css/styles.css">
   <title>Log Inspection</title>
 </head>
 <body>
-<button id="sidebarToggleBtn" type="button">☰</button>
 
 <div class="layout">
   <aside class="sidebar">
@@ -35,7 +35,10 @@
 
   <div class="content">
     <header class="topbar">
-      <h1 class="page-title">Log Inspection</h1>
+      <div class="topbar-left">
+        <button id="sidebarToggleBtn" type="button" aria-label="Toggle sidebar">☰</button>
+        <h1 class="page-title">Log Inspection</h1>
+      </div>
       <div class="topbar-right" id="todayText"></div>
     </header>
 
@@ -45,7 +48,6 @@
           <h2 style="margin-top:0;">Log Inspection</h2>
           <p class="small" style="margin-top:0;">Log results only for inspections that were scheduled.</p>
 
-          <!-- Scheduled inspection dropdown -->
           <label>Scheduled Inspection</label>
           <select id="scheduleSelect"></select>
 
@@ -102,6 +104,7 @@
   document.getElementById("todayText").textContent = d.toLocaleDateString(undefined, opts);
 </script>
 
+<!-- IMPORTANT: db.js must stay BEFORE inspection.js if you want the catalog from db.js -->
 <script src="../../db.js"></script>
 
 <script type="module" src="../../firebase.js"></script>
@@ -109,7 +112,6 @@
 <script type="module" src="../../db-compat.js"></script>
 
 <script src="../js/inspection.js"></script>
-
 <script src="../js/sidebar-toggle.js"></script>
 
 </body>

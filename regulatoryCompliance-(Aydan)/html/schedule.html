@@ -2,11 +2,11 @@
 <html>
 <head>
   <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="stylesheet" href="../css/styles.css">
   <title>Schedule Inspection</title>
 </head>
 <body>
-<button id="sidebarToggleBtn" type="button">☰</button>
 
 <div class="layout">
   <aside class="sidebar">
@@ -16,7 +16,6 @@
     </div>
 
     <nav class="nav">
-      <!-- ✅ ACTIVE HERE -->
       <a class="nav-item active" href="schedule.html"><span class="nav-icon">🗓️</span><span>Schedule Inspection</span></a>
       <a class="nav-item" href="inspection.html"><span class="nav-icon">🧾</span><span>Log Inspection</span></a>
       <a class="nav-item" href="dashboard.html"><span class="nav-icon">📊</span><span>Dashboard</span></a>
@@ -36,7 +35,10 @@
 
   <div class="content">
     <header class="topbar">
-      <h1 class="page-title">Schedule Inspection</h1>
+      <div class="topbar-left">
+        <button id="sidebarToggleBtn" type="button" aria-label="Toggle sidebar">☰</button>
+        <h1 class="page-title">Schedule Inspection</h1>
+      </div>
       <div class="topbar-right" id="todayText"></div>
     </header>
 
@@ -70,7 +72,6 @@
 
 <script src="../../db.js"></script>
 
-<!-- Firebase layer (same pattern as inspection.html) -->
 <script type="module" src="../../firebase.js"></script>
 <script type="module" src="../../firestore-service.js"></script>
 <script type="module" src="../../db-compat.js"></script>

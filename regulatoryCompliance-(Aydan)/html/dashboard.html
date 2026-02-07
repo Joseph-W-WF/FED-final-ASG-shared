@@ -2,11 +2,11 @@
 <html>
 <head>
   <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="stylesheet" href="../css/styles.css">
   <title>NEA Dashboard</title>
 </head>
 <body>
-<button id="sidebarToggleBtn" type="button">☰</button>
 
 <div class="layout">
   <aside class="sidebar">
@@ -35,10 +35,14 @@
 
   <div class="content">
     <header class="topbar">
-      <h1 class="page-title">Dashboard</h1>
+      <div class="topbar-left">
+        <button id="sidebarToggleBtn" type="button" aria-label="Toggle sidebar">☰</button>
+        <h1 class="page-title">Dashboard</h1>
+      </div>
       <div class="topbar-right" id="todayText"></div>
     </header>
-      <main class="main">
+
+    <main class="main">
       <div class="kpi-row">
         <div class="kpi">
           <p class="kpi-title">Total Inspections</p>

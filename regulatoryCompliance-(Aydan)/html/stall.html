@@ -2,6 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="stylesheet" href="../css/styles.css">
   <title>Stalls</title>
 
@@ -9,7 +10,6 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-<button id="sidebarToggleBtn" type="button">☰</button>
 
 <div class="layout">
   <aside class="sidebar">
@@ -38,13 +38,15 @@
 
   <div class="content">
     <header class="topbar">
-      <h1 class="page-title">Stalls</h1>
+      <div class="topbar-left">
+        <button id="sidebarToggleBtn" type="button" aria-label="Toggle sidebar">☰</button>
+        <h1 class="page-title">Stalls</h1>
+      </div>
       <div class="topbar-right" id="todayText"></div>
     </header>
 
     <main class="main">
       <div class="grid">
-        <!-- LEFT: Charts -->
         <div class="card">
           <h2 style="margin-top:0;">Hygiene Grade Trends (Monthly)</h2>
           <p class="small" style="margin-top:0;">X-axis shows months. Latest inspection for each month is plotted.</p>
@@ -53,7 +55,6 @@
           <select id="stallSelect"></select>
 
           <div style="margin-top:14px;">
-            <!-- IMPORTANT: stall.js expects id="gradeChart" -->
             <canvas id="gradeChart" height="120"></canvas>
           </div>
 
@@ -63,12 +64,10 @@
           <p class="small" style="margin-top:6px;">Scores are out of 100. Latest inspection for each month is plotted.</p>
 
           <div style="margin-top:14px;">
-            <!-- IMPORTANT: stall.js expects id="scoreChart" -->
             <canvas id="scoreChart" height="120"></canvas>
           </div>
         </div>
 
-        <!-- RIGHT: Table -->
         <div class="card">
           <h2 style="margin-top:0;">Historical Grades (Transparency)</h2>
           <div id="historyTable" class="small"></div>
@@ -95,3 +94,4 @@
 
 </body>
 </html>
+

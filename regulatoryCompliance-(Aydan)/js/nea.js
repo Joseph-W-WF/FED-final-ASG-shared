@@ -1,239 +1,259 @@
-requireNEA();
 
-var db = loadDB();
+document.addEventListener("DOMContentLoaded", () => {
+  renderDashboard().catch(console.error);
+});
 
-var priorityList = document.getElementById("priorityList");
-var offendersList = document.getElementById("offendersList");
-var expiryList = document.getElementById("expiryList");
-var penaltiesList = document.getElementById("penaltiesList");
+async function renderDashboard() {
+  // --- DOM targets ---
+  const priorityList = document.getElementById("priorityList");
+  const offendersList = document.getElementById("offendersList");
+  const expiryList = document.getElementById("expiryList");
+  const penaltiesList = document.getElementById("penaltiesList");
 
-renderDashboard();
-renderKPIs();
+  const inspEl = document.getElementById("kpiInspections");
+  const avgEl = document.getElementById("kpiAvgScore");
+  const expEl = document.getElementById("kpiExpiring");
+  const penEl = document.getElementById("kpiPenalties");
 
+  // --- Validate DB API ---
+  if (!window.DB || typeof DB.getInspectionsByStall !== "function") {
+    setAll("DB API not ready. Ensure dashboard.html loads firebase.js, firestore-service.js, db-compat.js BEFORE nea.js.");
+    return;
+  }
 
-function renderDashboard() {
-  db = loadDB();
-  renderPriorityQueue();
-  renderRepeatedOffenders();
-  renderExpiryAlerts();
-  renderLatestPenalties();
+  // --- Hybrid: stalls list stays local ---
+  const local = loadDB();
+  const stalls = local.stalls || [];
+
+  // --- Fetch Firestore data per stall ---
+  const stallData = await Promise.all(
+    stalls.map(async (s) => {
+      let inspections = [];
+      let penalties = [];
+      try { inspections = await DB.getInspectionsByStall(s.id); } catch (e) { console.error(e); }
+      try { penalties = await DB.getPenaltiesByStall(s.id); } catch (e) { console.error(e); }
+      return { stall: s, inspections: inspections || [], penalties: penalties || [] };
+    })
+  );
+
+  // --- KPIs ---
+  const allInspections = stallData.flatMap(x => x.inspections);
+  const allPenalties = stallData.flatMap(x => x.penalties);
+
+  if (inspEl) inspEl.textContent = String(allInspections.length);
+
+  // avg score
+  const scores = allInspections
+    .map(x => Number(x.score))
+    .filter(n => !Number.isNaN(n));
+  if (avgEl) avgEl.textContent = scores.length ? (scores.reduce((a,b)=>a+b,0) / scores.length).toFixed(1) : "-";
+
+  // expiring within 30 days (based on latest inspection per stall)
+  let expiringCount = 0;
+  stallData.forEach(sd => {
+    const last = getLatestInspection(sd.inspections);
+    if (last && isExpiringSoon(last.expiryDate, 30)) expiringCount++;
+  });
+  if (expEl) expEl.textContent = String(expiringCount);
+
+  if (penEl) penEl.textContent = String(allPenalties.length);
+
+  // --- Sections ---
+  renderPriorityQueue(priorityList, stallData);
+  renderExpiry(expiryList, stallData);
+  renderPenalties(penaltiesList, stallData, local);
+  await renderOffenders(offendersList, stallData);
+  
+  function setAll(msg) {
+    if (priorityList) priorityList.innerHTML = `<p class="small">${msg}</p>`;
+    if (offendersList) offendersList.innerHTML = `<p class="small">${msg}</p>`;
+    if (expiryList) expiryList.innerHTML = `<p class="small">${msg}</p>`;
+    if (penaltiesList) penaltiesList.innerHTML = `<p class="small">${msg}</p>`;
+  }
 }
 
-// Priority scoring (simple & explainable):
-// - Last grade D = +100
-// - Last grade C = +60
-// - Last grade B = +20
-// - Penalty in last 30 days = +40
-// - Grade expiring in 30 days = +50
-function renderPriorityQueue() {
-  var list = [];
+function renderPriorityQueue(el, stallData) {
+  if (!el) return;
 
-  for (var i = 0; i < db.stalls.length; i++) {
-    var s = db.stalls[i];
-    var score = 0;
+  const list = stallData.map(sd => {
+    const last = getLatestInspection(sd.inspections);
+    let score = 0;
 
-    var last = getLastGradeEntry(s);
-    if (last) {
+    if (!last) score += 40; // never inspected
+    else {
       if (last.grade === "D") score += 100;
       else if (last.grade === "C") score += 60;
       else if (last.grade === "B") score += 20;
 
       if (isExpiringSoon(last.expiryDate, 30)) score += 50;
-    } else {
-      score += 40; // never inspected
     }
 
-    if (hasRecentPenalty(s.id, 30)) score += 40;
+    if (hasRecentPenalty(sd.penalties, 30)) score += 40;
 
-    list.push({ stall: s, priorityScore: score, last: last });
+    return { stall: sd.stall, last, score };
+  });
+
+  list.sort((a,b) => b.score - a.score);
+
+  if (list.length === 0) {
+    el.innerHTML = `<p class="small">No stalls found.</p>`;
+    return;
   }
 
-  list.sort(function (a, b) { return b.priorityScore - a.priorityScore; });
-
-  var html = "<ol style='margin:0; padding-left:18px;'>";
-  for (var j = 0; j < Math.min(5, list.length); j++) {
-    var item = list[j];
-    var lastText = item.last ? ("Last Grade: " + item.last.grade + " (" + item.last.date + ")") : "No inspections yet";
-    html += "<li><strong>" + item.stall.name + "</strong> — " + lastText + " — Priority: " + item.priorityScore + "</li>";
-  }
-  html += "</ol>";
-
-  priorityList.innerHTML = html;
+  const top = list.slice(0, 5);
+  el.innerHTML = `
+    <ol style="margin:0; padding-left:18px;">
+      ${top.map(x => `
+        <li>
+          <strong>${x.stall.name}</strong>
+          — ${x.last ? `Last Grade: ${x.last.grade} (${x.last.conductedDate})` : "No inspections yet"}
+          — Priority: <strong>${x.score}</strong>
+        </li>
+      `).join("")}
+    </ol>
+  `;
 }
 
-// Repeat offender rule:
-// - 2+ penalties in last 180 days OR 2+ critical violations in last 180 days
-function renderRepeatedOffenders() {
-  var offenders = [];
+function renderExpiry(el, stallData) {
+  if (!el) return;
 
-  for (var i = 0; i < db.stalls.length; i++) {
-    var s = db.stalls[i];
-    var pCount = countPenaltiesDays(s.id, 180);
-    var cCount = countCriticalViolationsDays(s.id, 180);
+  const soon = [];
+  stallData.forEach(sd => {
+    const last = getLatestInspection(sd.inspections);
+    if (!last) return;
+    if (isExpiringSoon(last.expiryDate, 30)) {
+      soon.push({ stall: sd.stall, grade: last.grade, expiryDate: last.expiryDate });
+    }
+  });
 
-    if (pCount >= 2 || cCount >= 2) {
-      offenders.push({ stall: s, penalties: pCount, critical: cCount });
+  if (soon.length === 0) {
+    el.innerHTML = `<p class="small">No grades expiring within 30 days.</p>`;
+    return;
+  }
+
+  el.innerHTML = `
+    <ul style="margin:0; padding-left:18px;">
+      ${soon.map(x => `<li><strong>${x.stall.name}</strong> — Grade ${x.grade} expires on <strong>${x.expiryDate}</strong></li>`).join("")}
+    </ul>
+  `;
+}
+
+function renderPenalties(el, stallData, local) {
+  if (!el) return;
+
+  const all = stallData.flatMap(x => x.penalties || []);
+  if (all.length === 0) {
+    el.innerHTML = `<p class="small">No penalties yet.</p>`;
+    return;
+  }
+
+  all.sort((a,b) => penaltyDate(b) - penaltyDate(a));
+  const top = all.slice(0, 6);
+
+  const nameOf = (stallId) => (local.stalls || []).find(s => s.id === stallId)?.name || stallId;
+
+  el.innerHTML = `
+    <table class="table">
+      <thead><tr><th>Stall</th><th>Action</th><th>Date</th></tr></thead>
+      <tbody>
+        ${top.map(p => `
+          <tr>
+            <td>${nameOf(p.stallId)}</td>
+            <td>${p.action || "-"}</td>
+            <td>${fmt(penaltyDate(p))}</td>
+          </tr>
+        `).join("")}
+      </tbody>
+    </table>
+  `;
+}
+
+async function renderOffenders(el, stallData) {
+  if (!el) return;
+
+  // Simple rule: repeated offender if last 180 days has >=2 penalties OR >=2 CRITICAL violations
+  const offenders = [];
+
+  for (const sd of stallData) {
+    const pCount = (sd.penalties || []).filter(p => daysAgo(penaltyDate(p)) <= 180).length;
+
+    let criticalCount = 0;
+    if (typeof DB.getInspectionViolations === "function") {
+      const recentInsp = (sd.inspections || []).filter(ins => daysAgo(new Date(ins.conductedDate)) <= 180);
+      const vioLists = await Promise.all(
+        recentInsp.map(async (ins) => {
+          try { return await DB.getInspectionViolations(ins.id); } catch { return []; }
+        })
+      );
+      vioLists.forEach(arr => {
+        (arr || []).forEach(v => {
+          if (String(v.severity || "").toUpperCase() === "CRITICAL") criticalCount++;
+        });
+      });
+    }
+
+    if (pCount >= 2 || criticalCount >= 2) {
+      offenders.push({ stall: sd.stall, pCount, criticalCount });
     }
   }
 
   if (offenders.length === 0) {
-    offendersList.innerHTML = "<p class='small'>No repeated offenders found.</p>";
+    el.innerHTML = `<p class="small">No repeated offenders found.</p>`;
     return;
   }
 
-  var html = "<table class='table'><thead><tr><th>Stall</th><th>Penalties (180d)</th><th>Critical Violations (180d)</th></tr></thead><tbody>";
-  for (var j = 0; j < offenders.length; j++) {
-    html += "<tr><td>" + offenders[j].stall.name + "</td><td>" + offenders[j].penalties + "</td><td>" + offenders[j].critical + "</td></tr>";
-  }
-  html += "</tbody></table>";
-
-  offendersList.innerHTML = html;
+  el.innerHTML = `
+    <table class="table">
+      <thead><tr><th>Stall</th><th>Penalties (180d)</th><th>Critical Violations (180d)</th></tr></thead>
+      <tbody>
+        ${offenders.map(o => `
+          <tr>
+            <td>${o.stall.name}</td>
+            <td>${o.pCount}</td>
+            <td>${o.criticalCount}</td>
+          </tr>
+        `).join("")}
+      </tbody>
+    </table>
+  `;
 }
 
-function renderExpiryAlerts() {
-  var soon = [];
-  for (var i = 0; i < db.stalls.length; i++) {
-    var s = db.stalls[i];
-    var last = getLastGradeEntry(s);
-    if (!last) continue;
-
-    if (isExpiringSoon(last.expiryDate, 30)) {
-      soon.push({ stall: s, expiryDate: last.expiryDate, grade: last.grade });
-    }
-  }
-
-  if (soon.length === 0) {
-    expiryList.innerHTML = "<p class='small'>No grades expiring within 30 days.</p>";
-    return;
-  }
-
-  var html = "<ul style='margin:0; padding-left:18px;'>";
-  for (var j = 0; j < soon.length; j++) {
-    html += "<li><strong>" + soon[j].stall.name + "</strong> — Grade " + soon[j].grade +
-      " expires on <strong>" + soon[j].expiryDate + "</strong></li>";
-  }
-  html += "</ul>";
-
-  expiryList.innerHTML = html;
-}
-
-function renderLatestPenalties() {
-  var p = db.penalties || [];
-  if (p.length === 0) {
-    penaltiesList.innerHTML = "<p class='small'>No penalties yet.</p>";
-    return;
-  }
-
-  var copy = p.slice();
-  copy.sort(function (a, b) { return new Date(b.createdDateTime) - new Date(a.createdDateTime); });
-
-  var html = "<table class='table'><thead><tr><th>Stall</th><th>Action</th><th>Date</th></tr></thead><tbody>";
-  for (var i = 0; i < Math.min(6, copy.length); i++) {
-    var item = copy[i];
-    html += "<tr><td>" + stallName(item.stallId) + "</td><td>" + item.action + "</td><td>" + item.createdDateTime.slice(0, 10) + "</td></tr>";
-  }
-  html += "</tbody></table>";
-
-  penaltiesList.innerHTML = html;
-}
-
-/* Helpers */
-function getLastGradeEntry(stall) {
-  var h = stall.gradeHistory || [];
-  if (h.length === 0) return null;
-  return h[h.length - 1];
+/* helpers */
+function getLatestInspection(inspections) {
+  if (!inspections || inspections.length === 0) return null;
+  const copy = inspections.slice();
+  copy.sort((a,b) => new Date(b.conductedDate || 0) - new Date(a.conductedDate || 0));
+  return copy[0];
 }
 
 function isExpiringSoon(expiryDate, days) {
   if (!expiryDate) return false;
-  var now = new Date();
-  var exp = new Date(expiryDate);
-  var diffMs = exp - now;
-  var diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+  const now = new Date();
+  const exp = new Date(expiryDate);
+  const diffDays = Math.ceil((exp - now) / (1000 * 60 * 60 * 24));
   return diffDays >= 0 && diffDays <= days;
 }
 
-function hasRecentPenalty(stallId, days) { return countPenaltiesDays(stallId, days) > 0; }
-
-function countPenaltiesDays(stallId, days) {
-  var p = db.penalties || [];
-  var count = 0;
-  var now = new Date();
-
-  for (var i = 0; i < p.length; i++) {
-    if (p[i].stallId !== stallId) continue;
-    var dt = new Date(p[i].createdDateTime);
-    var diffDays = Math.floor((now - dt) / (1000 * 60 * 60 * 24));
-    if (diffDays <= days) count++;
-  }
-  return count;
+function hasRecentPenalty(penalties, days) {
+  return (penalties || []).some(p => daysAgo(penaltyDate(p)) <= days);
 }
 
-function countCriticalViolationsDays(stallId, days) {
-  var now = new Date();
-  var count = 0;
-
-  var inspections = db.inspections || [];
-  var violations = db.inspectionViolations || [];
-
-  for (var i = 0; i < inspections.length; i++) {
-    if (inspections[i].stallId !== stallId) continue;
-
-    var conducted = inspections[i].conductedDate;
-    if (!conducted) continue;
-
-    var dt = new Date(conducted);
-    var diffDays = Math.floor((now - dt) / (1000 * 60 * 60 * 24));
-    if (diffDays > days) continue;
-
-    for (var j = 0; j < violations.length; j++) {
-      if (violations[j].inspectionId === inspections[i].id && violations[j].severity === "CRITICAL") count++;
-    }
-  }
-
-  return count;
+function penaltyDate(p) {
+  if (!p) return new Date(0);
+  if (p.createdAt?.toDate) return p.createdAt.toDate();
+  if (p.createdDateTime) return new Date(p.createdDateTime);
+  return new Date(0);
 }
 
-function stallName(stallId) {
-  for (var i = 0; i < db.stalls.length; i++) if (db.stalls[i].id === stallId) return db.stalls[i].name;
-  return stallId;
+function daysAgo(dt) {
+  const now = new Date();
+  const d = dt instanceof Date ? dt : new Date(dt);
+  return Math.floor((now - d) / (1000 * 60 * 60 * 24));
 }
-function renderKPIs() {
-  db = loadDB();
 
-  var inspEl = document.getElementById("kpiInspections");
-  var avgEl = document.getElementById("kpiAvgScore");
-  var expEl = document.getElementById("kpiExpiring");
-  var penEl = document.getElementById("kpiPenalties");
-
-  var inspections = db.inspections || [];
-  var penalties = db.penalties || [];
-
-  // total inspections
-  if (inspEl) inspEl.textContent = inspections.length;
-
-  // average score
-  var total = 0;
-  var count = 0;
-  for (var i = 0; i < inspections.length; i++) {
-    if (typeof inspections[i].score === "number") {
-      total += inspections[i].score;
-      count++;
-    }
-  }
-  var avg = count === 0 ? "-" : (total / count).toFixed(1);
-  if (avgEl) avgEl.textContent = avg;
-
-  // expiring within 30 days (same logic as expiry list)
-  var expiringCount = 0;
-  for (var j = 0; j < db.stalls.length; j++) {
-    var last = getLastGradeEntry(db.stalls[j]);
-    if (!last) continue;
-    if (isExpiringSoon(last.expiryDate, 30)) expiringCount++;
-  }
-  if (expEl) expEl.textContent = expiringCount;
-
-  // total penalties
-  if (penEl) penEl.textContent = penalties.length;
+function fmt(dt) {
+  const d = dt instanceof Date ? dt : new Date(dt);
+  if (isNaN(d.getTime())) return "-";
+  return d.toISOString().slice(0,10);
 }
 

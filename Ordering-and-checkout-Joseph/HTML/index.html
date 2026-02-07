@@ -4,47 +4,103 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>FED Hawker — Customer</title>
+
+  <!-- Font (similar clean UI font) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+
   <link rel="stylesheet" href="../CSS/style.css"/>
 </head>
 
 <body>
-  <!-- Top Sticky Nav -->
-  <header class="topbar">
-    <div class="topbar__inner">
-      <div class="brand" role="banner">
-        <div class="brand__title">FED Hawker</div>
-        <div class="brand__subtitle" id="brandSubtitle">Customer</div>
+  <div class="appShell">
+    <!-- Sidebar (Customer Navigation) -->
+    <aside class="sidenav" id="sidenav" aria-label="Sidebar navigation">
+      <div class="sidenav__top">
+        <div class="sidenav__brand">
+          <div class="sidenav__brandTitle">FED Hawker:</div>
+          <div class="sidenav__brandSub">Customer Portal</div>
+        </div>
+
+        <button class="sidenav__close" id="sidenavCloseBtn" type="button" aria-label="Close menu">✕</button>
       </div>
 
-      <nav class="nav" aria-label="Customer navigation">
-        <button class="nav__link is-active" data-route="browse" type="button">Browse stalls</button>
-        <button class="nav__link" data-route="cart" type="button">
-          Cart
-          <span class="badge" id="cartBadge" aria-label="Items in cart">0</span>
+      <nav class="sidenav__nav" aria-label="Customer navigation">
+        <button class="side__link routeLink is-active" data-route="browse" type="button">
+          <span class="side__icon" aria-hidden="true">🏪</span>
+          <span class="side__text">Browse stalls</span>
         </button>
-        <button class="nav__link" data-route="orders" type="button">Orders</button>
+
+        <button class="side__link routeLink" data-route="cart" type="button">
+          <span class="side__icon" aria-hidden="true">🛒</span>
+          <span class="side__text">Cart</span>
+          <span class="badge badge--side" id="cartBadge" aria-label="Items in cart">0</span>
+        </button>
+
+        <button class="side__link routeLink" data-route="orders" type="button">
+          <span class="side__icon" aria-hidden="true">🧾</span>
+          <span class="side__text">Orders</span>
+        </button>
+
+        <button class="side__link routeLink" data-route="profile" type="button">
+          <span class="side__icon" aria-hidden="true">👤</span>
+          <span class="side__text">Profile</span>
+        </button>
       </nav>
 
-      <div class="profile">
-        <button class="profile__btn" id="profileBtn" type="button" aria-haspopup="menu" aria-expanded="false">
-          <div class="avatar" id="avatarText">J</div>
-          <div class="profile__text">
-            <div class="profile__name" id="profileName">Joseph</div>
-          </div>
-          <svg class="chev" viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M7 10l5 5 5-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-          </svg>
-        </button>
-
-        <div class="dropdown" id="profileDropdown" role="menu" aria-label="Profile menu">
-          <button class="dropdown__item" type="button" data-route="profile" role="menuitem">Profile</button>
-          <button class="dropdown__item" type="button" id="logoutBtn" role="menuitem">Logout</button>
+      <div class="sidenav__user">
+        <div class="avatar" id="sideAvatarText">J</div>
+        <div class="sidenav__userText">
+          <div class="sidenav__userName" id="sideUserName">Joseph</div>
+          <div class="sidenav__userSub" id="sideUserSub">Customer</div>
         </div>
       </div>
-    </div>
-  </header>
+    </aside>
 
-  <main class="container" id="app">
+    <div class="sidenavBackdrop" id="sidenavBackdrop" aria-hidden="true"></div>
+
+    <!-- Main area -->
+    <div class="mainArea">
+      <!-- Top Sticky Bar (Title + Profile) -->
+      <header class="topbar">
+        <div class="topbar__inner">
+          <div class="topbar__left">
+            <button class="iconBtn" id="sidenavOpenBtn" type="button" aria-label="Open menu">☰</button>
+
+            <div class="brand" role="banner">
+              <div class="brand__title">FED Hawker: Customer</div>
+              <div class="brand__subtitle" id="brandSubtitle">Maxwell Food Centre</div>
+            </div>
+          </div>
+
+          <div class="topbar__actions">
+            <button class="topCartBtn routeLink" type="button" data-route="cart" aria-label="Open cart">
+              <span class="topCartBtn__icon" aria-hidden="true">🛒</span>
+              <span class="badge badge--top" id="cartTopBadge">0</span>
+            </button>
+
+            <div class="profile">
+              <button class="profile__btn" id="profileBtn" type="button" aria-haspopup="menu" aria-expanded="false">
+                <div class="avatar" id="avatarText">J</div>
+                <div class="profile__text">
+                  <div class="profile__name" id="profileName">Joseph</div>
+                </div>
+                <svg class="chev" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M7 10l5 5 5-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+              </button>
+
+              <div class="dropdown" id="profileDropdown" role="menu" aria-label="Profile menu">
+                <button class="dropdown__item" type="button" data-route="profile" role="menuitem">Profile</button>
+                <button class="dropdown__item" type="button" id="logoutBtn" role="menuitem">Logout</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <main class="container" id="app">
 
     <!-- BROWSE -->
     <section class="page is-active" id="page-browse" aria-label="Browse stalls">
@@ -251,6 +307,9 @@
 
   </main>
 
+    </div>
+  </div>
+
   <!-- Payment overlay -->
   <div class="overlay is-hidden" id="payOverlay" role="dialog" aria-modal="true" aria-label="Payment status">
     <div class="overlayCard" id="overlayCard">
@@ -258,11 +317,17 @@
     </div>
   </div>
 
+  
+
   <script defer src="../JS/utils.js"></script>
   <script defer src="../JS/data.js"></script>
+  <!-- Queue system (Aydan) + compatibility helpers -->
+  <script defer src="../JS/queue.compat.js"></script>
+  <script defer src="../../queueTicketSystem-(Aydan)/queueTicketSystem.js"></script>
   <script defer src="../JS/store.cart.js"></script>
   <script defer src="../JS/store.orders.js"></script>
 
+  <script defer src="../JS/ui.sidenav.js"></script>
   <script defer src="../JS/ui.router.js"></script>
   <script defer src="../JS/ui.profile.js"></script>
 
@@ -276,3 +341,4 @@
 
 </body>
 </html>
+

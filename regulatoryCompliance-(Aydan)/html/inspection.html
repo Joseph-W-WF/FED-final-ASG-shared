@@ -6,6 +6,7 @@
   <title>Log Inspection</title>
 </head>
 <body>
+<button id="sidebarToggleBtn" type="button">☰</button>
 
 <div class="layout">
   <aside class="sidebar">
@@ -41,41 +42,52 @@
     <main class="main">
       <div class="grid">
         <div class="card">
-          <h2 style="margin-top:0;">New Inspection</h2>
-          <p class="small" style="margin-top:0;">Record inspection results and violations.</p>
+          <h2 style="margin-top:0;">Log Inspection</h2>
+          <p class="small" style="margin-top:0;">Log results only for inspections that were scheduled.</p>
 
-          <label>Stall</label>
-          <select id="stallSelect"></select>
+          <!-- Scheduled inspection dropdown -->
+          <label>Scheduled Inspection</label>
+          <select id="scheduleSelect"></select>
 
-          <label>Scheduled Date (optional)</label>
-          <input id="scheduledDate" type="date" />
+          <div class="small" style="margin-top:10px;">
+            <div><strong>Stall:</strong> <span id="stallName">-</span></div>
+            <div style="margin-top:6px;"><strong>Scheduled Date:</strong> <span id="scheduledDate">-</span></div>
+          </div>
 
-          <label>Conducted Date</label>
-          <input id="conductedDate" type="date" />
-
-          <label>Score (0–100)</label>
-          <input id="score" type="number" min="0" max="100" />
+          <label style="margin-top:14px;">Score (0–100)</label>
+          <input id="score" type="number" min="0" max="100" placeholder="e.g. 92" />
 
           <label>Remarks</label>
-          <textarea id="remarks"></textarea>
+          <textarea id="remarks" placeholder="Optional remarks..."></textarea>
 
           <hr style="margin:18px 0; border:0; border-top:1px solid #eee;">
 
-          <!-- MOVED HERE: Violations -->
           <h2 style="margin:0;">Violations</h2>
-          <p class="small" style="margin-top:6px;">Add violation codes and severity (saved with this inspection).</p>
+          <p class="small" style="margin-top:6px;">Add violations found during this inspection (optional).</p>
 
-          <label>Add Violation</label>
+          <label>Pick from catalog</label>
           <div style="display:flex; gap:10px; align-items:center;">
             <select id="violationSelect" style="flex:1;"></select>
-            <button id="addViolationBtn" class="btn-primary" type="button">Add</button>
+            <button id="addViolationBtn" class="btn-primary" type="button">Add Selected Violation</button>
+          </div>
+
+          <label style="margin-top:12px;">Custom violation</label>
+          <div style="display:flex; gap:10px; align-items:center;">
+            <input id="customViolation" style="flex:1;" placeholder="e.g. Food left uncovered" />
+            <span class="small">Severity</span>
+            <select id="customSeverity">
+              <option value="MINOR">MINOR</option>
+              <option value="MAJOR" selected>MAJOR</option>
+              <option value="CRITICAL">CRITICAL</option>
+            </select>
+            <button id="addCustomBtn" class="btn-primary" type="button">Add Custom Violation</button>
           </div>
 
           <div id="violationsList" class="small" style="margin-top:10px;"></div>
           <p class="small" style="margin-top:10px;">Penalties are auto-generated based on grade and critical violations.</p>
 
           <div style="margin-top:18px; display:flex; gap:12px; align-items:center;">
-            <button id="saveBtn" class="btn-primary">Save Inspection</button>
+            <button id="saveInspectionBtn" class="btn-primary">Save Inspection Log</button>
             <span id="msg" class="small"></span>
           </div>
         </div>
@@ -91,7 +103,14 @@
 </script>
 
 <script src="../../db.js"></script>
-<script src="../js/neaGuard.js"></script>
+
+<script type="module" src="../../firebase.js"></script>
+<script type="module" src="../../firestore-service.js"></script>
+<script type="module" src="../../db-compat.js"></script>
+
 <script src="../js/inspection.js"></script>
+
+<script src="../js/sidebar-toggle.js"></script>
+
 </body>
 </html>

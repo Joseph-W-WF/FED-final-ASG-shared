@@ -38,11 +38,13 @@ FED.router = (() => {
 
     // Keep "Browse stalls" highlighted even when user is inside a menu.
     const navRoute = (route === "menu") ? "browse" : route;
-    document.querySelectorAll(".nav__link").forEach(btn => {
+    document.querySelectorAll(".routeLink").forEach(btn => {
       btn.classList.toggle("is-active", btn.dataset.route === navRoute);
     });
 
     if (FED.profile?.closeDropdown) FED.profile.closeDropdown();
+
+    if (FED.sidenav?.close) FED.sidenav.close();
 
     if (routeHandlers[route]) routeHandlers[route]();
   }

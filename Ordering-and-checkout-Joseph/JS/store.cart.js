@@ -1,112 +1,130 @@
 window.FED = window.FED || {};
 
 FED.cart = (() => {
-  const { loadJSON, saveJSON } = FED.utils;
+  const { loadJSON, saveJSON, money } = FED.utils;
 
-  const LS_KEYS = { CART: "fed_cart_v1" };
+  const LS_KEYS = {
+    CART: "fed_cart_v1",
+  };
+
+  function emptyCart() {
+    return { vendors: {} };
+  }
 
   function getCart() {
-    return loadJSON(LS_KEYS.CART, { vendors: {} });
+    return loadJSON(LS_KEYS.CART, emptyCart());
   }
 
   function setCart(cart) {
     saveJSON(LS_KEYS.CART, cart);
-    updateBadge();
   }
 
-  function makeLineId(itemId, addonIdsSorted) {
-    return `${itemId}__${addonIdsSorted.join("_")}`;
+  // A stable key so "same item + same addons" merges into one line.
+  function makeLineId(itemId, addons) {
+    const addonIds = (addons || []).map(a => a.id).sort();
+    return `${itemId}__${addonIds.join("_") || "no_addons"}`;
   }
 
   function computeLineTotal(line) {
-    const addonsTotal = (line.addons || []).reduce((sum, a) => sum + a.price, 0);
-    return (line.unitPrice + addonsTotal) * line.qty;
+    const addonsTotal = (line.addons || []).reduce((s, a) => s + Number(a.price || 0), 0);
+    return (Number(line.unitPrice || 0) + addonsTotal) * Number(line.qty || 0);
   }
 
   function computeVendorSubtotal(vendorGroup) {
-    return Object.values(vendorGroup.items).reduce(
-      (sum, line) => sum + computeLineTotal(line),
-      0
-    );
+    return Object.values(vendorGroup.items || {}).reduce((sum, line) => sum + computeLineTotal(line), 0);
   }
 
-  function itemCount() {
-    const cart = getCart();
+  function countItems(cart) {
     let count = 0;
-    for (const v of Object.values(cart.vendors)) {
-      for (const it of Object.values(v.items)) {
-        count += it.qty;
-      }
-    }
+    Object.values(cart.vendors || {}).forEach(v => {
+      Object.values(v.items || {}).forEach(line => {
+        count += Number(line.qty || 0);
+      });
+    });
     return count;
   }
 
   function updateBadge() {
-    const badge = document.getElementById("cartBadge");
-    if (badge) badge.textContent = String(itemCount());
-  }
+  const cart = getCart();
+  const count = countItems(cart);
+
+  ["cartBadge", "cartTopBadge"].forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = String(count);
+  });
+}
+
 
   function addToCart(stall, item, qty, addons) {
     const cart = getCart();
+    const vendorId = stall.id;
+    const vendorName = stall.name;
 
-    if (!cart.vendors[stall.id]) {
-      cart.vendors[stall.id] = {
-        vendorId: stall.id,
-        vendorName: stall.name,
-        items: {},
-      };
-    }
+    cart.vendors[vendorId] = cart.vendors[vendorId] || { vendorId, vendorName, items: {} };
 
-    const group = cart.vendors[stall.id];
+    const lineId = makeLineId(item.id, addons);
+    const existing = cart.vendors[vendorId].items[lineId];
 
-    const addonIds = (addons || []).map(a => a.id).sort();
-    const lineId = makeLineId(item.id, addonIds);
-
-    if (!group.items[lineId]) {
-      group.items[lineId] = {
+    if (existing) {
+      existing.qty += Number(qty || 1);
+    } else {
+      cart.vendors[vendorId].items[lineId] = {
         lineId,
-        vendorId: stall.id,
-        vendorName: stall.name,
         itemId: item.id,
         name: item.name,
-        unitPrice: item.price,
-        tags: item.tags || [],
-        addons: addons || [],
-        qty: 0,
+        unitPrice: Number(item.price || 0),
+        qty: Number(qty || 1),
+        addons: (addons || []).map(a => ({ id: a.id, name: a.name, price: Number(a.price || 0) })),
       };
     }
 
-    group.items[lineId].qty += qty;
     setCart(cart);
-  }
-
-  function removeLine(vendorId, lineId) {
-    const cart = getCart();
-    const group = cart.vendors[vendorId];
-    if (!group) return;
-
-    delete group.items[lineId];
-    if (Object.keys(group.items).length === 0) delete cart.vendors[vendorId];
-    setCart(cart);
+    updateBadge();
   }
 
   function bumpQty(vendorId, lineId, delta) {
     const cart = getCart();
-    const group = cart.vendors[vendorId];
-    if (!group || !group.items[lineId]) return;
+    const v = cart.vendors[vendorId];
+    if (!v || !v.items[lineId]) return;
 
-    group.items[lineId].qty = Math.max(1, group.items[lineId].qty + delta);
+    v.items[lineId].qty = Number(v.items[lineId].qty || 0) + Number(delta || 0);
+
+    if (v.items[lineId].qty <= 0) {
+      delete v.items[lineId];
+    }
+
+    if (Object.keys(v.items).length === 0) {
+      delete cart.vendors[vendorId];
+    }
+
     setCart(cart);
+    updateBadge();
+  }
+
+  function removeLine(vendorId, lineId) {
+    const cart = getCart();
+    const v = cart.vendors[vendorId];
+    if (!v) return;
+
+    delete v.items[lineId];
+
+    if (Object.keys(v.items).length === 0) {
+      delete cart.vendors[vendorId];
+    }
+
+    setCart(cart);
+    updateBadge();
   }
 
   function clearVendor(vendorId) {
     const cart = getCart();
     delete cart.vendors[vendorId];
     setCart(cart);
+    updateBadge();
   }
 
   function clearAll() {
-    saveJSON(LS_KEYS.CART, { vendors: {} });
+    setCart(emptyCart());
     updateBadge();
   }
 
@@ -114,12 +132,12 @@ FED.cart = (() => {
     getCart,
     setCart,
     addToCart,
-    removeLine,
     bumpQty,
+    removeLine,
     clearVendor,
     clearAll,
-    updateBadge,
     computeLineTotal,
     computeVendorSubtotal,
+    updateBadge,
   };
 })();

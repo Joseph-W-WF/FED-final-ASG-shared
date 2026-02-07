@@ -280,3 +280,53 @@ button:hover{ background: var(--accent-dark); }
   font-weight: 800;
   color: #111827;
 }
+
+
+/* --- Fix custom violation row layout --- */
+#customViolation { 
+  flex: 1; 
+  min-width: 220px;
+}
+
+/* ===== Minimal sidebar toggle ===== */
+.sidebar {
+  transition: transform 0.25s ease;
+}
+
+body.sidebar-collapsed .sidebar {
+  transform: translateX(-100%);
+}
+
+/* If your layout uses margin-left for content, this will snap it back */
+body.sidebar-collapsed .content {
+  margin-left: 0 !important;
+  width: 100% !important;
+}
+
+/* Floating hamburger button */
+#sidebarToggleBtn {
+  position: fixed;
+  top: 16px;
+  left: 16px;
+  z-index: 2000;
+
+  width: 44px;
+  height: 44px;
+  border: none;
+  border-radius: 12px;
+
+  cursor: pointer;
+  font-size: 20px;
+  line-height: 1;
+
+  /* match your theme (you can change to your accent var if you have one) */
+  background: #4f46e5;
+  color: #fff;
+
+  box-shadow: 0 10px 24px rgba(17,24,39,0.12);
+}
+
+/* Optional: only show the button when sidebar is collapsed */
+body:not(.sidebar-collapsed) #sidebarToggleBtn {
+  display: none;
+}

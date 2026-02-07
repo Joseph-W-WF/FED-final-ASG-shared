@@ -22,6 +22,13 @@ FED.profile = (() => {
 
     document.addEventListener("click", () => closeDropdown());
 
+
+    // Sync sidebar user card (if present)
+    const sideName = document.getElementById("sideUserName");
+    const sideAvatar = document.getElementById("sideAvatarText");
+    if (sideName) sideName.textContent = document.getElementById("profileName")?.textContent || "Guest";
+    if (sideAvatar) sideAvatar.textContent = document.getElementById("avatarText")?.textContent || "G";
+
     document.getElementById("logoutBtn").addEventListener("click", () => {
       alert("Logout (UI only). Hook to Firebase signOut() later.");
       closeDropdown();
@@ -32,6 +39,12 @@ FED.profile = (() => {
       if (!confirm("Clear cart + orders?")) return;
       FED.cart.clearAll();
       FED.orders.clearAll();
+
+      // Also clear queue tickets (so queue numbers reset)
+      if (FED.queueCompat && typeof FED.queueCompat.resetQueueDB === "function") {
+        FED.queueCompat.resetQueueDB();
+      }
+
       FED.cart.updateBadge();
       alert("Cleared.");
       FED.router.go("browse");
@@ -43,10 +56,12 @@ FED.profile = (() => {
       const demo = [
         {
           id: uid(),
-          vendorId: "stall_2",
-          vendorName: "Ah Boy Char Kway Teow",
-          items: [{ name: "Char Kway Teow", qty: 1, unitPrice: 5.00, addons: [{ id: "a_egg", name: "Add egg", price: 0.80 }], lineTotal: 5.80 }],
-          total: 5.80,
+          vendorId: "stall_3",
+          vendorName: "Pasta Place",
+          items: [
+            { name: "Carbonara", qty: 1, unitPrice: 6.50, addons: [{ id: "a_cheese", name: "Extra cheese", price: 0.80 }], lineTotal: 7.30 }
+          ],
+          total: 7.30,
           payMethod: "E-Wallet",
           status: "Completed",
           createdAt: new Date(Date.now() - 86400000).toISOString(),
@@ -54,24 +69,45 @@ FED.profile = (() => {
         {
           id: uid(),
           vendorId: "stall_1",
-          vendorName: "Ali Bing Chicken Rice",
-          items: [{ name: "Chicken Rice (Roasted)", qty: 2, unitPrice: 4.50, addons: [{ id: "a_take", name: "Takeaway", price: 0.50 }], lineTotal: 10.00 }],
-          total: 10.00,
+          vendorName: "Clemens Kitchen",
+          items: [
+            { name: "Chicken Rice", qty: 2, unitPrice: 5.50, addons: [{ id: "a_take", name: "Takeaway", price: 0.50 }], lineTotal: 12.00 }
+          ],
+          total: 12.00,
           payMethod: "Cash",
           status: "Received",
           createdAt: new Date(Date.now() - 3600000).toISOString(),
         },
         {
           id: uid(),
-          vendorId: "stall_3",
-          vendorName: "Siti Nasi Padang",
-          items: [{ name: "Nasi Padang (Chicken)", qty: 1, unitPrice: 6.00, addons: [{ id: "a_sambal", name: "Extra sambal", price: 0.50 }], lineTotal: 6.50 }],
-          total: 6.50,
+          vendorId: "stall_5",
+          vendorName: "Peranakan Kitchen",
+          items: [
+            { name: "Laksa", qty: 1, unitPrice: 5.50, addons: [{ id: "a_egg", name: "Add egg", price: 0.80 }], lineTotal: 6.30 }
+          ],
+          total: 6.30,
           payMethod: "Card",
           status: "Failed",
           createdAt: new Date(Date.now() - 7200000).toISOString(),
         },
       ];
+
+      // Add queue tickets for any demo *active* orders so the Active Orders tab can show ticket info
+      if (typeof window.createQueueTicket === "function") {
+        const nameEl = document.getElementById("profileName");
+        const customerName = (nameEl && nameEl.textContent) ? nameEl.textContent : "Customer";
+
+        demo.forEach(o => {
+          if (o.status === "Received") {
+            const t = window.createQueueTicket(o.vendorId, customerName, o.id);
+            if (t) {
+              o.queueTicketId = t.ticketId;
+              o.queueNo = t.ticketNo;
+              o.queueEtaMin = t.etaMinutes;
+            }
+          }
+        });
+      }
 
       const current = FED.orders.getOrders();
       FED.orders.setOrders([...demo, ...current]);

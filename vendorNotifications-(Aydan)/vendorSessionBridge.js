@@ -1,5 +1,5 @@
 // vendorSessionBridge.js
-// Sync Vendor UI (V1/V2 + name/avatar) from hawkerSessionUser_v1 before vendor-management.js reads it.
+// Sync Vendor UI (V1/V2 + name/avatar + stall title) from session.
 
 (function () {
   function readSession() {
@@ -18,28 +18,55 @@
     return (a + b).toUpperCase() || "V";
   }
 
+  function resolveStallNameFromSeed(vendorIdLower) {
+    // Prefer local db.js seed (fast + reliable for display)
+    try {
+      if (typeof window.loadDB === "function") {
+        const db = window.loadDB();
+        const stalls = Array.isArray(db?.stalls) ? db.stalls : [];
+        const s = stalls.find(x => String(x.vendorUserId || "").toLowerCase() === vendorIdLower);
+        if (s?.name) return s.name;
+      }
+    } catch {}
+
+    // fallback mapping
+    if (vendorIdLower === "v2") return "Indian Corner";
+    return "Clemens Kitchen";
+  }
+
   const u = readSession();
   if (!u || String(u.role || "").toUpperCase() !== "VENDOR") return;
 
-  // account.js stores { id: "v1", role:"VENDOR", username:"..." }
-  const idText = String(u.id || "").toUpperCase(); // "V1"
+  const vendorIdLower = String(u.id || "").toLowerCase();      // "v2"
+  const idText = String(u.id || "").toUpperCase();             // "V2"
   if (!idText) return;
 
   const displayName = String(u.username || u.fullName || u.id || "Vendor");
+  const ini = initials(displayName);
 
-  // Update IDs shown on page (vendor-management.js reads these)
+  // ✅ Update IDs shown on page
   document.querySelectorAll(".user-id, .top-header-id").forEach((el) => {
     el.textContent = idText;
   });
 
-  // Update names (cosmetic)
+  // ✅ Update names shown on page
   document.querySelectorAll(".user-name, .top-header-name").forEach((el) => {
     el.textContent = displayName;
   });
 
-  // Update avatar initials (cosmetic)
-  const ini = initials(displayName);
+  // ✅ Update avatar initials
   document.querySelectorAll(".user-avatar, .top-header-avatar").forEach((el) => {
     el.textContent = ini;
   });
+
+  // ✅ Update stall title text ("FED Hawker: ...") in BOTH places
+  const stallName = resolveStallNameFromSeed(vendorIdLower);
+  const titleText = `FED Hawker: ${stallName}`;
+
+  const sidebarLogo = document.querySelector(".logo");
+  if (sidebarLogo) sidebarLogo.textContent = titleText;
+
+  const topTitle = document.querySelector(".top-header-title");
+  if (topTitle) topTitle.textContent = titleText;
 })();
+

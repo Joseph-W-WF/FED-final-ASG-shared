@@ -167,3 +167,329 @@ Open the account/login page first:
 - Firestore access depends on the project’s Firestore rules. 
 - Vendor live notifications require the vendor page to load the notification scripts (JS + CSS).
 
+
+##Joseph Wong Wan Fong
+FED Hawker Centre Web App (Customer Ordering + Account Management)
+1) What this project is
+
+A multi-role hawker centre web app prototype with:
+
+Customer: browse stalls → view menu → add to cart → checkout → order tracking
+
+Vendor / NEA: redirected to their respective pages after login (built by teammates)
+
+Main entry page (login/role select):
+user-account-management-Joseph/HTML/account.html
+
+2) How to run the project
+Option A — Local (recommended for marking)
+
+Open the repo folder in VS Code
+
+Install/enable Live Server
+
+Right-click → Open with Live Server:
+
+user-account-management-Joseph/HTML/account.html
+
+Option B — GitHub Pages
+
+If using GitHub Pages, the website root must contain an index.html (e.g. redirecting to the login page).
+(If your Pages still shows README instead of the site, your Pages source folder is wrong or there’s no index.html in the published root.)
+
+3) Joseph Feature 1 — User Account Management (Login/Register/Recovery)
+3.1 Role selection + rules
+
+On the login screen, users pick Customer / Vendor / NEA.
+Rules enforced:
+
+Customer can: register, sign in, password recovery (OTP), guest mode
+
+Vendor can: sign in only (no register / no guest)
+
+NEA can: sign in only (requires NEA ID)
+
+3.2 Login behavior
+
+Supports sign-in using Username / Email / Phone (role-based)
+
+NEA sign-in requires:
+
+NEA ID (used as the Firestore document ID)
+
+Username
+
+Password
+
+3.3 Register (Customer only)
+
+Customer registration collects:
+
+Full name
+
+Email (required for registration logic)
+
+Phone (8-digit)
+
+Password (min 6)
+
+System generates a unique username from the email prefix (e.g. john), and appends a number if needed.
+
+3.4 Password recovery (Customer only)
+
+A simulated OTP flow:
+
+Choose email or phone mode
+
+“Send OTP” (OTP is generated + stored for verification)
+
+Enter OTP
+
+Reset password
+
+3.5 Session handling (shared across pages)
+
+After login, session is stored in localStorage:
+
+hawkerSessionUser_v1
+
+hawkerSessionRole_v1
+
+This allows the Ordering & Checkout pages to display the logged-in user name and use a stable customer key.
+
+3.6 Role-based routing after login
+
+After successful authentication:
+
+Customer / Guest → Ordering-and-checkout-Joseph/HTML/index.html
+
+Vendor → VendorManangementLervyn/index.html
+
+NEA → regulatoryCompliance-(Aydan)/html/nea.html
+
+4) Joseph Feature 2 — Customer Ordering & Checkout
+4.1 Customer navigation (sidebar)
+
+Customer UI includes a sidebar that routes between:
+
+Browse
+
+Menu
+
+Cart
+
+Checkout
+
+My Orders
+
+Routing is handled in-page using a small JS router (no page reload).
+
+4.2 Browse stalls
+
+Browse view shows stalls (from Ordering-and-checkout-Joseph/JS/data.js) with:
+
+Cuisine tags
+
+Hygiene tag
+
+Search bar to filter by stall name
+
+4.3 Menu + addons + cart
+
+From a stall:
+
+Customer can view items, choose quantity, and optionally select addons (e.g. takeaway, egg, extra cheese)
+
+“Add to cart” groups items under the selected stall/vendor
+
+Cart behavior:
+
+Cart is grouped by vendor/stall, so each stall has its own cart section
+
+Quantity controls (+ / −), remove line item
+
+Clear vendor cart or clear all cart
+
+Cart storage:
+
+localStorage key: fed_cart_v1
+
+4.4 Separate orders per vendor
+
+Checkout is performed per vendor:
+
+Cart page shows a Checkout button for each vendor group
+
+This creates separate orders for different vendors (required feature)
+
+4.5 Payment methods + status display
+
+Checkout supports payment method selection (UI simulation):
+
+Cash
+
+Credit/Debit Card
+
+E-Wallet (PayNow/GrabPay simulated)
+
+Testing option:
+
+“Force payment failure” checkbox (to demo failure state)
+
+Result is shown clearly:
+
+Success → order status “Received”
+
+Failure → order status “Failed” and cart is not cleared
+
+4.6 Queue ticket integration (for Active Orders demo)
+
+When payment is successful, a queue ticket is created (via teammate queue system), and the order stores:
+
+Ticket ID
+
+Queue number
+
+Estimated waiting time (ETA)
+
+Queue storage (local):
+
+fed_queue_db_v1
+
+4.7 My Orders (status, search, sort, stats)
+
+My Orders page supports:
+
+Tabs:
+
+Active Orders (“Received”)
+
+Completed
+
+Cancelled (“Failed”)
+
+Search orders by stall/item name
+
+Sort:
+
+Newest/Oldest
+
+Total high→low / low→high
+
+Stats shown (order counts, totals, etc.)
+
+Customer actions:
+
+Mark active order as Completed
+
+Cancel active order (moves to “Failed/Cancelled” tab)
+
+Orders storage:
+
+localStorage key: fed_orders_v1
+
+4.8 Profile dropdown utilities (for demo/testing)
+
+In the customer UI:
+
+Logout (clears shared session keys)
+
+Clear data (clears cart + orders + queue tickets)
+
+Seed demo orders (adds sample orders so markers can see UI immediately)
+
+5) Data sources & where to edit things
+5.1 Stall/menu data
+
+Edit stall names, menu items, prices, addons here:
+
+Ordering-and-checkout-Joseph/JS/data.js
+
+5.2 Sessions / cart / orders storage keys
+
+Stored in browser localStorage:
+
+hawkerSessionUser_v1 / hawkerSessionRole_v1 (login session)
+
+fed_cart_v1 (cart)
+
+fed_orders_v1 (orders)
+
+fed_queue_db_v1 (queue)
+
+6) Firestore usage (for teacher/demo)
+6.1 Firebase config file
+
+Firebase is initialized in:
+
+firebase.js
+
+6.2 Firestore collections used by Joseph pages
+
+Joseph pages can read/write:
+
+users (account login + customer registration + password reset sync)
+
+orders (order sync / updates when available)
+
+Important: This project does NOT use Firebase Authentication login yet.
+Login is done by checking credentials stored in Firestore users documents (prototype/demo style).
+
+6.3 Creating Vendor / NEA accounts (needed to test those roles)
+
+Customer accounts are created using the Register button.
+Vendor/NEA accounts must be added manually in Firestore.
+
+Vendor user document example
+
+Collection: users
+Doc ID: any (e.g. v1)
+
+{
+  role: "VENDOR",
+  username: "vendor1",
+  usernameLower: "vendor1",
+  password: "pass1234",
+  email: "vendor1@example.com",
+  emailLower: "vendor1@example.com",
+  phone: "81234567"
+}
+
+NEA user document example (IMPORTANT: doc ID must match NEA ID)
+
+Collection: users
+Doc ID: nea001 (this is what you type into the NEA “ID” field)
+
+{
+  role: "NEA",
+  username: "neauser",
+  usernameLower: "neauser",
+  password: "pass1234"
+}
+
+7) Files that matter for Joseph features
+Account Management
+
+user-account-management-Joseph/HTML/account.html
+
+user-account-management-Joseph/JS/account.js
+
+user-account-management-Joseph/CSS/account.css
+
+Ordering & Checkout
+
+Ordering-and-checkout-Joseph/HTML/index.html
+
+Ordering-and-checkout-Joseph/CSS/style.css
+
+Ordering-and-checkout-Joseph/JS/* (router, pages, cart, orders, checkout)
+
+Ordering-and-checkout-Joseph/JS/data.js (stall/menu data)
+
+8) Notes / limitations (prototype constraints)
+
+Payment is simulated UI-only (no real payment gateway)
+
+Passwords are stored in Firestore as plain text (prototype only — not production-safe)
+
+Guest orders are stored by device key (so they persist on the same browser)

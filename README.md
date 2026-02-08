@@ -1,13 +1,53 @@
 FED final assignment
 Store web/app data into db.js
 
+<<<<<<< HEAD
+## Vendor Management page
+**Done by:** Lervyn Ang (S10273196B)
+
+### Overview
+The Vendor Management module focuses on supporting hawker stall owners in managing their daily operations through a centralised interface. This module allows vendors to manage menu items, track rental agreements and renewals, monitor stall performance, and review order history. The features are designed to improve operational efficiency, provide better visibility of stall performance, and enhance decision-making.
+
+### Implemented Features
+
+#### Sidebar Navigation
+A sidebar-based navigation system is used to provide quick access to all vendor-related features, including menu management, rental agreements, performance dashboard, and order history. This allows vendors to switch between features efficiently without leaving the vendor portal.
+
+#### Menu Management (Multiple Cuisines per Item)
+Vendors can add, edit, and delete menu items for their stall. Each menu item supports multiple cuisine tags, allowing flexible categorisation of food offerings, especially for fusion dishes. Menu items are filtered by stall ID to ensure vendors only manage their own stall’s menu.
+
+#### Rental Agreement Management
+This feature allows vendors to view all current and past rental agreements associated with their stall. Each agreement displays details such as agreement ID, rental period, monthly amount, and status (active or expired).
+
+#### Rental Renewal
+Vendors can renew rental agreements by updating the rental period and rental amount. Previous agreements are retained to maintain a history of rental changes over time. Agreement status is automatically updated based on the rental end date.
+
+#### Stall Performance Dashboard
+The stall performance dashboard provides an overview of key performance metrics, including total orders, total revenue, sales trends over time, and top-selling menu items. Vendors can filter performance data by month range to analyse trends more effectively. At this stage, dashboard data is simulated on the front end for demonstration purposes.
+
+#### Vendor Order History
+The vendor order history feature allows stall owners to review orders placed at their stall. Orders can be filtered by status such as active, completed, or cancelled. Each order displays customer details, ordered items, payment method, and order date, helping vendors track sales activity and identify frequent or high-spending customers
+
+### Technologies Used (Vendor Module)
+- HTML
+- CSS
+- JavaScript 
+- Firebase Firestore (data storage)  
+
+### Assumptions & Limitations
+- This module focuses on front-end functionality and user interaction.
+- Some dashboard analytics are generated on the client side for demonstration.
+- Payment processing is not implemented, as it is handled by another system.
+=======
+
+
 ## Aydan Yeo Yu Jing (S10273117G) — Individual Features (Operational Enhancements + Regulatory & Compliance)
 
 ---
 
-# 1) Feature Summary
+# 1 Feature Summary
 
-### A) Regulatory & Compliance (NEA Portal)
+### A Regulatory & Compliance (NEA Portal)
 1. **Inspection scheduling (NEA)**  
    NEA officers can schedule stall inspections (date + stall). Schedules are stored and later selectable when logging inspections.
 
@@ -37,7 +77,7 @@ Store web/app data into db.js
 
 ---
 
-### B) Operational Enhancements (Vendor/Queue)
+### B Operational Enhancements (Vendor/Queue)
 1. **In-app live notifications for vendors (new order)**  
    Vendor pages can show notifications when a new order appears for that vendor’s stall.
 
@@ -46,7 +86,7 @@ Store web/app data into db.js
 
 ---
 
-# 2) Folder Structure (My Files Only)
+# 2 Folder Structure (My Files Only)
 
 ### `regulatoryCompliance-(Aydan)/`
 - `html/nea.html` — NEA landing page
@@ -72,7 +112,7 @@ Store web/app data into db.js
 
 ---
 
-# 3) Data + Dependencies (How it works)
+# 3 Data + Dependencies (How it works)
 
 ### Firebase / Firestore
 My features use Firestore as the “live data” source (e.g., inspections, schedules, orders), which is aligned with the assignment’s suggestion to use Firebase-like databases.
@@ -96,7 +136,7 @@ This avoids “empty dropdown” issues and keeps the catalog usable even before
 
 ---
 
-# 4) How to Run + Test My Features
+# 4 How to Run + Test My Features
 
 ## Recommended: Run using VS Code Live Server
 Because the project uses module scripts (Firebase), run through a local server (Live Server / http://localhost).
@@ -107,7 +147,7 @@ Open the account/login page first:
 
 ---
 
-## A) Test NEA Portal (Regulatory Compliance)
+## A Test NEA Portal (Regulatory Compliance)
 
 1) **Login as an NEA account**  
 - After login, an NEA session is stored in `localStorage` (used by my NEA guard).
@@ -145,7 +185,7 @@ Open the account/login page first:
 
 ---
 
-## B) Test Vendor In-App Notifications (New Orders)
+## B Test Vendor In-App Notifications (New Orders)
 
 1) Login as a vendor using the normal account system
 2) Open vendor portal:
@@ -161,19 +201,22 @@ Open the account/login page first:
 
 ---
 
-# 5) Notes / Known Limitations
+# 5 Notes / Known Limitations
 
 - The queue ticket system is currently a reusable module; integrating it into a UI page requires adding buttons/forms on customer/vendor pages.
 - Firestore access depends on the project’s Firestore rules. 
 - Vendor live notifications require the vendor page to load the notification scripts (JS + CSS). 
 
+<<<<<<< HEAD
+>>>>>>> 92c5c4b5b55ed210da77fe8639f428d582b41c62
+=======
 
 
 
 # FED Hawker Centre Web App (Customer Ordering + Account Management)
 # Joseph Wong Wan Fong (S10272886G)
 
-## 1) What this project is
+## 1 What this project is
 
 A multi-role hawker centre web app prototype with:
 
@@ -185,7 +228,7 @@ A multi-role hawker centre web app prototype with:
 
 ---
 
-## 2) How to run the project
+## 2 How to run the project
 
 ### Option A — Local (recommended for marking)
 
@@ -202,7 +245,7 @@ If using GitHub Pages, the website root must contain an `index.html` (e.g. redir
 
 ---
 
-## 3) Joseph Feature 1 — User Account Management (Login/Register/Recovery)
+## 3 Joseph Feature 1 — User Account Management (Login/Register/Recovery)
 
 ### 3.1 Role selection + rules
 
@@ -261,7 +304,7 @@ After successful authentication:
 
 ---
 
-## 4) Joseph Feature 2 — Customer Ordering & Checkout
+## 4 Joseph Feature 2 — Customer Ordering & Checkout
 
 ### 4.1 Customer navigation (sidebar)
 
@@ -371,7 +414,7 @@ In the customer UI:
 
 ---
 
-## 5) Data sources & where to edit things
+## 5 Data sources & where to edit things
 
 ### 5.1 Stall/menu data
 
@@ -390,7 +433,7 @@ Stored in browser localStorage:
 
 ---
 
-## 6) Firestore usage (for teacher/demo)
+## 6 Firestore usage (for teacher/demo)
 
 ### 6.1 Firebase config file
 
@@ -446,7 +489,7 @@ Doc ID: `nea001` (this is what you type into the NEA “ID” field)
 
 ---
 
-## 7) Files that matter for Joseph features
+## 7 Files that matter for Joseph features
 
 ### Account Management
 
@@ -463,7 +506,7 @@ Doc ID: `nea001` (this is what you type into the NEA “ID” field)
 
 ---
 
-## 8) Notes / limitations (prototype constraints)
+## 8 Notes / limitations (prototype constraints)
 
 * Payment is **simulated UI-only** (no real payment gateway)
 * Passwords are stored in Firestore as plain text (prototype only — not production-safe)
@@ -471,3 +514,4 @@ Doc ID: `nea001` (this is what you type into the NEA “ID” field)
 
 ---
 
+>>>>>>> 64551accaee692a05ea5aade528f1d303eaba791

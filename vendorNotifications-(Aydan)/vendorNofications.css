@@ -38,3 +38,22 @@
   opacity: 0.95;
   line-height: 1.25;
 }
+/* iPhone 16 / small screens */
+@media (max-width: 440px){
+  .vm-toast-stack{
+    left: 12px;
+    right: 12px;
+    bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .vm-toast{
+    width: 100%;
+    max-width: none;
+    border-radius: 16px;
+    padding: 12px 14px;
+    font-size: 14px;
+  }
+
+  .vm-toast .t-title{ font-size: 14px; }
+  .vm-toast .t-body{ font-size: 13px; }
+}

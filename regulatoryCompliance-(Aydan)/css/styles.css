@@ -199,6 +199,48 @@ button:hover{ background: var(--accent-dark); }
   .nav-item{ justify-content:center; }
   .avatar{ margin:auto; }
 }
+/* iPhone 16 / small screens */
+@media (max-width: 440px){
+  .layout{ display: block; }
+
+  .topbar{
+    height: auto;
+    padding: 12px 14px;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+  .page-title{ font-size: 20px; }
+  .topbar-right{ font-size: 12px; }
+
+  /* Sidebar becomes off-canvas on phone */
+  .sidebar{
+    position: fixed;
+    top: 0; bottom: 0; left: 0;
+    width: min(86vw, 320px);
+    z-index: 80;
+    transform: translateX(-100%);
+    box-shadow: 0 14px 30px rgba(17,24,39,0.22);
+  }
+  body:not(.sidebar-collapsed) .sidebar{
+    transform: translateX(0);
+  }
+
+  .content{ width: 100%; }
+  .main{ padding: 14px; }
+
+  .grid{ grid-template-columns: 1fr; }
+  .kpi-row{ grid-template-columns: 1fr; }
+
+  .card{ padding: 14px; }
+
+  .table th, .table td{
+    padding: 10px 10px;
+    font-size: 13px;
+    word-break: break-word;
+  }
+}
+
 
 /* ---------- Dashboard / Trends UI upgrades ---------- */
 

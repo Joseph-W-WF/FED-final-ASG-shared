@@ -306,3 +306,25 @@ button{
   }
   .card-grid{ grid-template-columns: 1fr; }
 }
+/* iPhone 16 / small screens */
+@media (max-width: 440px){
+  .topbar{ padding: 14px 14px; }
+  .top-nav{ justify-content: flex-start; gap: 8px; }
+  .topbar .nav-btn{ padding: 8px 10px; font-size: 13px; }
+
+  .panel{ width: calc(100% - 20px); margin: 12px auto; }
+  .view{ padding: 16px; }
+
+  h1{ font-size: 22px; }
+  .form{ max-width: none; }
+
+  .row{ flex-direction: column; align-items: stretch; }
+  .row button{ width: 100%; }
+
+  .tabs{
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 6px;
+  }
+  .tab{ white-space: nowrap; }
+}

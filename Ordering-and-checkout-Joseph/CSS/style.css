@@ -866,7 +866,7 @@ body.sidenav-collapsed .iconBtn{ display: inline-grid; }
 /* ------------------------------
    Mobile polish (iPhone 16-ish)
    ------------------------------ */
-@media (max-width: 430px){
+@media (max-width: 440px){
   .sidenav{ width: 86vw; max-width: 320px; }
 
   .topbar__inner{ height: auto; padding: 12px 14px; }

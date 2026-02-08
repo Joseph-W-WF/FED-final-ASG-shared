@@ -1,7 +1,6 @@
 FED final assignment
 Store web/app data into db.js
 
-<<<<<<< HEAD
 ## Vendor Management page
 **Done by:** Lervyn Ang (S10273196B)
 
@@ -28,16 +27,6 @@ The stall performance dashboard provides an overview of key performance metrics,
 #### Vendor Order History
 The vendor order history feature allows stall owners to review orders placed at their stall. Orders can be filtered by status such as active, completed, or cancelled. Each order displays customer details, ordered items, payment method, and order date, helping vendors track sales activity and identify frequent or high-spending customers
 
-### Technologies Used (Vendor Module)
-- HTML
-- CSS
-- JavaScript 
-- Firebase Firestore (data storage)  
-
-### Assumptions & Limitations
-- This module focuses on front-end functionality and user interaction.
-- Some dashboard analytics are generated on the client side for demonstration.
-- Payment processing is not implemented, as it is handled by another system.
 =======
 
 

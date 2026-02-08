@@ -647,18 +647,21 @@ const renderVendorOrders = async () => {
   const listEl = document.getElementById("vendorOrdersList");
   const emptyEl = document.getElementById("vendorOrdersEmpty");
   const topBody = document.getElementById("topCustomersBody");
+  const topSection = document.querySelector(".vm-top-customers"); // ✅ whole section wrapper
+
   if (!listEl || !emptyEl || !topBody) return;
 
   const searchTerm = document.getElementById("vendorOrderSearch").value.toLowerCase();
   const tabVal = document.getElementById("vendorOrderTab").value;
 
-  // ✅ Firestore orders (mapped to the same shape your UI expects)
+  // ✅ Firestore orders
   const all = DB.getVendorOrdersByStallId
     ? await maybeAwait(DB.getVendorOrdersByStallId(CURRENT_STALL_ID))
     : [];
 
   let vendorOrders = Array.isArray(all) ? all : [];
 
+  // filter by tab
   vendorOrders = vendorOrders.filter((o) => {
     if (tabVal === "active") return o.status === "active";
     if (tabVal === "completed") return o.status === "Collected";
@@ -666,6 +669,7 @@ const renderVendorOrders = async () => {
     return true;
   });
 
+  // search filter
   if (searchTerm) {
     vendorOrders = vendorOrders.filter((o) => {
       return (
@@ -677,6 +681,7 @@ const renderVendorOrders = async () => {
 
   vendorOrders.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
 
+  // render orders list / empty state
   if (vendorOrders.length === 0) {
     listEl.style.display = "none";
     emptyEl.style.display = "block";
@@ -686,7 +691,15 @@ const renderVendorOrders = async () => {
     listEl.innerHTML = vendorOrders.map(createVendorOrderCard).join("");
   }
 
-  renderTopCustomersTable(topBody, vendorOrders);
+  // ✅ Only show Top Customers on COMPLETED tab
+  if (tabVal !== "completed") {
+    if (topSection) topSection.style.display = "none";
+    topBody.innerHTML = ""; // optional: clear table
+    return;
+  }
+
+  if (topSection) topSection.style.display = ""; // default display
+  renderTopCustomersTable(topBody, vendorOrders); // completed orders only
 };
 
 const createVendorOrderCard = (o) => {

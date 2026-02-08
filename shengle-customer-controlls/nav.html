@@ -1,0 +1,155 @@
+<!-- Shared Navigation Component -->
+<style>
+    nav {
+        background: #5b5ce6;
+        color: #fff;
+        padding: 15px 20px;
+        display: flex;
+        align-items: center;
+        position: relative;
+        z-index: 100;
+    }
+
+    .hamburger {
+        background: none;
+        border: none;
+        color: #fff;
+        font-size: 28px;
+        cursor: pointer;
+        padding: 0;
+        margin-right: 20px;
+    }
+
+    .nav-title {
+        flex: 1;
+        text-align: center;
+        font-weight: bold;
+        font-size: 18px;
+    }
+
+    .sidebar-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 200;
+    }
+
+    .sidebar-overlay.active {
+        display: block;
+    }
+
+    .sidebar-menu {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 250px;
+        height: 100vh;
+        background: #5b5ce6;
+        color: #fff;
+        padding: 20px;
+        z-index: 300;
+        transform: translateX(-100%);
+        transition: transform 0.3s ease;
+        overflow-y: auto;
+    }
+
+    .sidebar-menu.active {
+        transform: translateX(0);
+    }
+
+    .sidebar-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 30px;
+        padding-bottom: 15px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .sidebar-header h2 {
+        margin: 0;
+        font-size: 18px;
+    }
+
+    .close-btn {
+        background: none;
+        border: none;
+        color: #fff;
+        font-size: 28px;
+        cursor: pointer;
+        padding: 0;
+    }
+
+    .nav-menu {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .nav-menu li {
+        margin-bottom: 0;
+    }
+
+    .nav-menu a {
+        display: block;
+        color: #fff;
+        text-decoration: none;
+        padding: 12px 16px;
+        border-radius: 8px;
+        transition: background 0.3s;
+        margin-bottom: 8px;
+    }
+
+    .nav-menu a:hover {
+        background: rgba(255, 255, 255, 0.2);
+    }
+</style>
+
+<nav>
+    <button class="hamburger" onclick="toggleSidebar()">☰</button>
+    <div class="nav-title" id="navTitle">Menu</div>
+</nav>
+
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+
+<div class="sidebar-menu" id="sidebarMenu">
+    <div class="sidebar-header">
+        <h2>Menu</h2>
+        <button class="close-btn" onclick="closeSidebar()">✕</button>
+    </div>
+    <ul class="nav-menu">
+        <li><a href="../dashboard.html">Dashboard</a></li>
+        <li><a href="../features/feature-profile/profile.html">Profile</a></li>
+        <li><a href="../features/feature-discount/discount-page.html">Rewards</a></li>
+        <li><a href="../features/feature-feedback/feedback.html">Feedback</a></li>
+        <li><a href="../features/feature-compliant/compliant.html">Complaints</a></li>
+    </ul>
+</div>
+
+<script>
+    function toggleSidebar() {
+        const sidebar = document.getElementById("sidebarMenu");
+        const overlay = document.getElementById("sidebarOverlay");
+        sidebar.classList.toggle("active");
+        overlay.classList.toggle("active");
+    }
+
+    function closeSidebar() {
+        const sidebar = document.getElementById("sidebarMenu");
+        const overlay = document.getElementById("sidebarOverlay");
+        sidebar.classList.remove("active");
+        overlay.classList.remove("active");
+    }
+
+    // Set nav title from data attribute if present
+    document.addEventListener('DOMContentLoaded', function() {
+        const navTitle = document.getElementById('navTitle');
+        if (navTitle && navTitle.parentElement.parentElement.dataset.navTitle) {
+            navTitle.textContent = navTitle.parentElement.parentElement.dataset.navTitle;
+        }
+    });
+</script>

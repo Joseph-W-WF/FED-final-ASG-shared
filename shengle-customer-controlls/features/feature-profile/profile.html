@@ -9,29 +9,141 @@
         * {
             box-sizing: border-box;
             font-family: Arial, Helvetica, sans-serif;
+            margin: 0;
+            padding: 0;
         }
 
         body {
-            margin: 0;
-            min-height: 100vh;
             background: #f4f4f4;
+            min-height: 100vh;
+        }
+
+        nav {
+            background: #5b5ce6;
+            color: #fff;
+            padding: 15px 20px;
+            display: flex;
+            align-items: center;
+            position: relative;
+            z-index: 100;
+        }
+
+        .hamburger {
+            background: none;
+            border: none;
+            color: #fff;
+            font-size: 28px;
+            cursor: pointer;
+            padding: 0;
+            margin-right: 20px;
+        }
+
+        .nav-title {
+            flex: 1;
+            text-align: center;
+            font-weight: bold;
+            font-size: 18px;
+        }
+
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 200;
+        }
+
+        .sidebar-overlay.active {
+            display: block;
+        }
+
+        .sidebar-menu {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 250px;
+            height: 100vh;
+            background: #5b5ce6;
+            color: #fff;
+            padding: 20px;
+            z-index: 300;
+            transform: translateX(-100%);
+            transition: transform 0.3s ease;
+            overflow-y: auto;
+        }
+
+        .sidebar-menu.active {
+            transform: translateX(0);
+        }
+
+        .sidebar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .sidebar-header h2 {
+            margin: 0;
+            font-size: 18px;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            color: #fff;
+            font-size: 28px;
+            cursor: pointer;
+            padding: 0;
+        }
+
+        .nav-menu {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .nav-menu li {
+            margin-bottom: 0;
+        }
+
+        .nav-menu a {
+            display: block;
+            color: #fff;
+            text-decoration: none;
+            padding: 12px 16px;
+            border-radius: 8px;
+            transition: background 0.3s;
+            margin-bottom: 8px;
+        }
+
+        .nav-menu a:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .main-content {
+            padding: 20px;
             display: flex;
             justify-content: center;
-            align-items: stretch;
-            padding: 0;
         }
 
         .card {
             width: 100%;
+            max-width: 500px;
             background: #fff;
-            border-radius: 0;
-            padding: 20px;
-            box-shadow: none;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
         }
 
-        /* mobile / single-column */
         .card .header {
             text-align: center;
+            margin-bottom: 30px;
         }
 
         .avatar {
@@ -50,10 +162,11 @@
 
         h2 {
             margin: 10px 0 5px;
+            font-size: 20px;
         }
 
         .email {
-            font-size: 13px;
+            font-size: 14px;
             color: #777;
             margin-bottom: 20px;
         }
@@ -63,7 +176,7 @@
         }
 
         .field label {
-            font-size: 11px;
+            font-size: 12px;
             font-weight: bold;
             color: #555;
             display: block;
@@ -85,6 +198,25 @@
             font-weight: bold;
             cursor: pointer;
             margin-top: 10px;
+            transition: background 0.3s;
+        }
+
+        .primary {
+            background: #5b5ce6;
+            color: #fff;
+        }
+
+        .primary:hover {
+            background: #4647d6;
+        }
+
+        .ghost {
+            background: #fff;
+            border: 1px solid #000;
+        }
+
+        .ghost:hover {
+            background: #f1f1f1;
         }
 
         .logout {
@@ -92,136 +224,363 @@
             border: 1px solid #000;
         }
 
-        /* Desktop: two-column layout using grid */
+        .logout:hover {
+            background: #f1f1f1;
+        }
+
+        .actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .actions button {
+            flex: 1;
+            margin-top: 0;
+            padding: 12px;
+            border-radius: 8px;
+        }
+
+        #notifications {
+            background: transparent;
+            padding: 0 !important;
+        }
+
+        #notifSummary {
+            padding: 10px;
+            background: #f1f1f1;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        #notifList {
+            list-style: none;
+            padding: 8px 0;
+            margin: 8px 0 0 0;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+
+        #notifList li {
+            padding: 8px;
+            background: #f1f1f1;
+            margin-bottom: 4px;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+
+        #notifCount {
+            background: #ff3b30;
+            color: #fff;
+            padding: 4px 8px;
+            border-radius: 999px;
+            font-size: 12px;
+        }
+
+        /* Complaint Modal */
+        #complaintModal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        #complaintModal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: #fff;
+            padding: 30px;
+            border-radius: 20px;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .modal-content h2 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-content label {
+            font-size: 12px;
+            font-weight: bold;
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        .modal-content select,
+        .modal-content input,
+        .modal-content textarea {
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0 15px;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+        }
+
+        .modal-content textarea {
+            height: 100px;
+            resize: none;
+            font-family: Arial, sans-serif;
+        }
+
+        /* Feedback Modal */
+        #feedbackModal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        #feedbackModal.active {
+            display: flex;
+        }
+
+        .star-rating {
+            display: flex;
+            justify-content: center;
+            flex-direction: row-reverse;
+            font-size: 28px;
+            margin-bottom: 15px;
+            gap: 5px;
+        }
+
+        .star-rating input {
+            display: none;
+        }
+
+        .star-rating label {
+            color: #ccc;
+            cursor: pointer;
+            transition: color 0.3s;
+        }
+
+        .star-rating input:checked ~ label,
+        .star-rating label:hover,
+        .star-rating label:hover ~ label {
+            color: gold;
+        }
+
         @media (min-width: 900px) {
-            body { align-items: stretch; padding: 0; }
+            .main-content {
+                padding: 40px;
+            }
+            
             .card {
-                padding: 40px 60px;
+                max-width: 700px;
+                padding: 40px;
             }
-            .card .layout {
-                display: grid;
-                grid-template-columns: 280px 1fr;
-                gap: 40px;
-                align-items: start;
+
+            .card .header {
+                text-align: left;
+                margin-bottom: 30px;
             }
-            .card .header { text-align: left; }
-            .avatar { margin: 0; width: 120px; height: 120px; font-size: 48px; }
-            .email { margin-bottom: 8px; }
-            .actions { display:flex; gap:12px; }
-            .actions button { width: auto; padding: 12px 18px; border-radius: 8px; }
-            .actions .primary { background:#5b5ce6; color:#fff; }
-            .actions .ghost { background:#fff; border:1px solid #000; }
-            #notifications { background:transparent;padding:0; }
+
+            .avatar {
+                margin: 0 0 10px 0;
+                width: 120px;
+                height: 120px;
+                font-size: 48px;
+            }
+
+            .actions {
+                flex-direction: row;
+                gap: 12px;
+                margin-top: 25px;
+            }
+
+            .actions button {
+                flex: 1;
+                padding: 12px;
+            }
         }
     </style>    
 </head>
 <body>
 
-<!-- Complaint Modal -->
-<div id="complaintModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:1000;justify-content:center;align-items:center;">
-    <div style="background:#fff;padding:20px;border-radius:20px;width:360px;box-shadow:0 6px 15px rgba(0,0,0,0.2);">
-        <h2 style="margin-top:0;text-align:center;">SUBMIT COMPLAINT</h2>
-        
-        <label style="font-size:12px;font-weight:bold;display:block;margin-bottom:4px;">STORE</label>
-        <select id="complaintStore" style="width:100%;padding:12px;margin:8px 0 15px;border-radius:8px;border:1px solid #ccc;">
-            <option value="">Select a store...</option>
-            <option>Store A</option>
-            <option>Store B</option>
-            <option>Store C</option>
-        </select>
+    <nav>
+        <button class="hamburger" onclick="toggleSidebar()">☰</button>
+        <div class="nav-title">Profile</div>
+    </nav>
 
-        <label style="font-size:12px;font-weight:bold;display:block;margin-bottom:4px;">ISSUE TITLE</label>
-        <input type="text" id="complaintTitle" placeholder="Brief description..." style="width:100%;padding:12px;margin:8px 0 15px;border-radius:8px;border:1px solid #ccc;">
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
 
-        <label style="font-size:12px;font-weight:bold;display:block;margin-bottom:4px;">DETAILS</label>
-        <textarea id="complaintDetails" placeholder="Describe the issue..." style="width:100%;height:100px;padding:12px;margin:8px 0 15px;border-radius:8px;border:1px solid #ccc;resize:none;"></textarea>
-
-        <button id="submitComplaintBtn" style="width:100%;padding:14px;border-radius:25px;border:none;margin-bottom:10px;font-weight:bold;cursor:pointer;background:#5b5ce6;color:#fff;">SUBMIT COMPLAINT</button>
-        <button id="closeComplaintBtn" style="width:100%;padding:14px;border-radius:25px;border:1px solid #000;background:#fff;font-weight:bold;cursor:pointer;">CANCEL</button>
-    </div>
-</div>
-
-<!-- Feedback Modal -->
-<div id="feedbackModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:1000;justify-content:center;align-items:center;">
-    <div style="background:#fff;padding:20px;border-radius:20px;width:360px;box-shadow:0 6px 15px rgba(0,0,0,0.2);">
-        <h2 style="margin-top:0;text-align:center;">Leave A Review</h2>
-        
-        <div style="display:flex;justify-content:center;flex-direction:row-reverse;font-size:25px;margin-bottom:15px;" class="star-rating">
-            <input type="radio" id="star5" name="rating" value="5" style="display:none;">
-            <label for="star5" style="color:#ccc;cursor:pointer;transition:color 0.3s;">&#9733;</label>
-
-            <input type="radio" id="star4" name="rating" value="4" style="display:none;">
-            <label for="star4" style="color:#ccc;cursor:pointer;transition:color 0.3s;">&#9733;</label>                
-            
-            <input type="radio" id="star3" name="rating" value="3" style="display:none;">
-            <label for="star3" style="color:#ccc;cursor:pointer;transition:color 0.3s;">&#9733;</label>
-
-            <input type="radio" id="star2" name="rating" value="2" style="display:none;">
-            <label for="star2" style="color:#ccc;cursor:pointer;transition:color 0.3s;">&#9733;</label>
-            
-            <input type="radio" id="star1" name="rating" value="1" style="display:none;">
-            <label for="star1" style="color:#ccc;cursor:pointer;transition:color 0.3s;">&#9733;</label>                
+    <div class="sidebar-menu" id="sidebarMenu">
+        <div class="sidebar-header">
+            <h2>Menu</h2>
+            <button class="close-btn" onclick="closeSidebar()">✕</button>
         </div>
-        
-        <textarea id="feedbackText" placeholder="Write your feedback..." style="width:100%;height:100px;padding:10px;margin-bottom:15px;border:1px solid #ccc;border-radius:5px;resize:none;font-family:arial;"></textarea>
-        <button id="submitFeedbackBtn" style="width:100%;padding:14px;border-radius:25px;border:none;margin-bottom:10px;font-weight:bold;cursor:pointer;background:#5b5ce6;color:#fff;">SUBMIT REVIEW</button>
-        <button id="closeFeedbackBtn" style="width:100%;padding:14px;border-radius:25px;border:1px solid #000;background:#fff;font-weight:bold;cursor:pointer;">CANCEL</button>
+        <ul class="nav-menu">
+            <li><a href="../../dashboard.html">Dashboard</a></li>
+            <li><a href="../feature-profile/profile.html">Profile</a></li>
+            <li><a href="../feature-discount/discount-page.html">Rewards</a></li>
+            <li><a href="../feature-feedback/feedback.html">Feedback</a></li>
+            <li><a href="../feature-compliant/compliant.html">Complaints</a></li>
+        </ul>
     </div>
-</div>
 
-<style>
-    .star-rating input:checked ~ label, .star-rating label:hover, .star-rating label:hover ~ label {
-        color: gold;
-    }
-</style>
+    <!-- Complaint Modal -->
+    <div id="complaintModal">
+        <div class="modal-content">
+            <h2>Submit Complaint</h2>
+            
+            <label>Store</label>
+            <select id="complaintStore">
+                <option value="">Select a store...</option>
+                <option>Store A</option>
+                <option>Store B</option>
+                <option>Store C</option>
+            </select>
 
-<div class="card">
-    <div class="layout">
-        <div class="header">
-            <div class="avatar" id="avatar">U</div>
-            <h2 id="name">Loading...</h2>
-            <div class="email" id="email"></div>
+            <label>Issue Title</label>
+            <input type="text" id="complaintTitle" placeholder="Brief description...">
+
+            <label>Details</label>
+            <textarea id="complaintDetails" placeholder="Describe the issue..."></textarea>
+
+            <button id="submitComplaintBtn" class="primary">Submit Complaint</button>
+            <button id="closeComplaintBtn" class="ghost">Cancel</button>
         </div>
+    </div>
 
-        <div class="content">
-            <div class="field">
-                <label>Phone</label>
-                <div id="phone">-</div>
+    <!-- Feedback Modal -->
+    <div id="feedbackModal">
+        <div class="modal-content">
+            <h2>Leave A Review</h2>
+            
+            <div class="star-rating">
+                <input type="radio" id="star5" name="rating" value="5">
+                <label for="star5">★</label>
+
+                <input type="radio" id="star4" name="rating" value="4">
+                <label for="star4">★</label>                
+                
+                <input type="radio" id="star3" name="rating" value="3">
+                <label for="star3">★</label>
+
+                <input type="radio" id="star2" name="rating" value="2">
+                <label for="star2">★</label>
+                
+                <input type="radio" id="star1" name="rating" value="1">
+                <label for="star1">★</label>                
+            </div>
+            
+            <textarea id="feedbackText" placeholder="Write your feedback..."></textarea>
+            <button id="submitFeedbackBtn" class="primary">Submit Review</button>
+            <button id="closeFeedbackBtn" class="ghost">Cancel</button>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div class="card">
+            <div class="header">
+                <div class="avatar" id="avatar">U</div>
+                <h2 id="name">Loading...</h2>
+                <div class="email" id="email"></div>
             </div>
 
-            <div class="field">
-                <label>Address</label>
-                <div id="address">-</div>
-            </div>
+            <div class="content">
+                <div class="field">
+                    <label>Phone</label>
+                    <div id="phone">-</div>
+                </div>
 
-            <div class="field">
-                <label>Member Since</label>
-                <div id="joined">-</div>
-            </div>
+                <div class="field">
+                    <label>Address</label>
+                    <div id="address">-</div>
+                </div>
 
-            <div class="field">
-                <label>Notifications</label>
-                <div id="notifications" style="background:#fff;padding:8px;border-radius:8px;">
-                    <div style="display:flex;align-items:center;justify-content:space-between">
-                        <div id="notifSummary">No new notifications</div>
-                        <div id="notifCount" style="background:#ff3b30;color:#fff;padding:4px 8px;border-radius:999px;display:none;font-size:12px">0</div>
+                <div class="field">
+                    <label>Member Since</label>
+                    <div id="joined">-</div>
+                </div>
+
+                <div class="field">
+                    <label>Notifications</label>
+                    <div id="notifications">
+                        <div id="notifSummary">
+                            <span>No new notifications</span>
+                            <div id="notifCount" style="display:none;"></div>
+                        </div>
+                        <ul id="notifList" style="display:none;"></ul>
                     </div>
-                    <ul id="notifList" style="list-style:none;padding:8px 0;margin:0;max-height:120px;overflow:auto;display:none"></ul>
+                </div>
+
+                <div class="actions">
+                    <button id="feedbackBtn" class="primary" type="button">Submit Feedback</button>
+                    <button id="complaintBtn" class="ghost" type="button">Submit Complaint</button>
+                </div>
+
+                <div style="margin-top: 18px;">
+                    <button class="logout" id="logoutBtn">Logout</button>
                 </div>
             </div>
-
-            <div class="actions">
-                <button id="feedbackBtn" class="primary" type="button" data-action="feedback">Submit Feedback</button>
-                <button id="complaintBtn" class="ghost" type="button" data-action="complaint">Submit Complaint</button>
-            </div>
-
-            <div style="margin-top:18px">
-                <button class="logout" id="logoutBtn">Logout</button>
-            </div>
         </div>
     </div>
-</div>
 
-<script type="module" src="JS/profile.js"></script>
+    <script>
+        function toggleSidebar() {
+            const sidebar = document.getElementById("sidebarMenu");
+            const overlay = document.getElementById("sidebarOverlay");
+            sidebar.classList.toggle("active");
+            overlay.classList.toggle("active");
+        }
+
+        function closeSidebar() {
+            const sidebar = document.getElementById("sidebarMenu");
+            const overlay = document.getElementById("sidebarOverlay");
+            sidebar.classList.remove("active");
+            overlay.classList.remove("active");
+        }
+
+        // Modal functions
+        function openFeedbackModal() {
+            document.getElementById('feedbackModal').classList.add('active');
+        }
+
+        function closeFeedbackModal() {
+            document.getElementById('feedbackModal').classList.remove('active');
+        }
+
+        function openComplaintModal() {
+            document.getElementById('complaintModal').classList.add('active');
+        }
+
+        function closeComplaintModal() {
+            document.getElementById('complaintModal').classList.remove('active');
+        }
+
+        // Button event listeners
+        document.addEventListener('DOMContentLoaded', function(){
+            const fbBtn = document.getElementById('feedbackBtn');
+            const closeFb = document.getElementById('closeFeedbackBtn');
+            const compBtn = document.getElementById('complaintBtn');
+            const closeComp = document.getElementById('closeComplaintBtn');
+            if(fbBtn) fbBtn.addEventListener('click', openFeedbackModal);
+            if(closeFb) closeFb.addEventListener('click', closeFeedbackModal);
+            if(compBtn) compBtn.addEventListener('click', openComplaintModal);
+            if(closeComp) closeComp.addEventListener('click', closeComplaintModal);
+        });
+    </script>
+
+    <script type="module" src="JS/profile.js"></script>
 </body>
 </html>

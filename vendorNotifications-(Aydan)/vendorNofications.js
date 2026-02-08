@@ -1,5 +1,5 @@
 // Live in-app notifications for vendors (new order toast)
-// Standalone: derives vendorId/stallId itself (no need teammate globals)
+// Uses session first, then UI fallback. Listens to Firestore orders by stallId.
 
 (function () {
   const POLL_MS = 200;
@@ -11,6 +11,14 @@
   let _currentStall = null;
   let _started = false;
 
+  function readSession() {
+    try {
+      return JSON.parse(localStorage.getItem("hawkerSessionUser_v1") || "null");
+    } catch {
+      return null;
+    }
+  }
+
   function ensureToastStack() {
     let stack = document.getElementById("vmToastStack");
     if (!stack) {
@@ -20,6 +28,15 @@
       document.body.appendChild(stack);
     }
     return stack;
+  }
+
+  function escapeHtml(s) {
+    return String(s ?? "")
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
   }
 
   function showToast(title, body) {
@@ -35,24 +52,19 @@
     stack.prepend(toast);
 
     setTimeout(() => toast.classList.add("show"), 10);
-
     setTimeout(() => {
       toast.classList.remove("show");
       setTimeout(() => toast.remove(), 250);
     }, 3500);
   }
 
-  function escapeHtml(s) {
-    return String(s ?? "")
-      .replaceAll("&", "&amp;")
-      .replaceAll("<", "&lt;")
-      .replaceAll(">", "&gt;")
-      .replaceAll('"', "&quot;")
-      .replaceAll("'", "&#039;");
-  }
+  function detectVendorId() {
+    // 1) session
+    const u = readSession();
+    const role = String(u?.role || "").toUpperCase();
+    if (u?.id && role === "VENDOR") return String(u.id).toLowerCase();
 
-  // Read vendor id from UI ("V1" / "V2") -> "v1" / "v2"
-  function detectVendorIdFromUI() {
+    // 2) UI fallback
     const el =
       document.querySelector(".top-header-id") ||
       document.querySelector(".user-id") ||
@@ -60,12 +72,11 @@
 
     const raw = String(el?.textContent || "").trim();
     if (!raw) return "v1";
-    return raw.toLowerCase(); // "V1" -> "v1"
+    return raw.toLowerCase(); // "V2" -> "v2"
   }
 
-  // Resolve stallId without needing teammate globals
   async function resolveStallId() {
-    // 1) If any global property exists (rare, but keep it)
+    // 1) direct global (rare)
     const direct =
       window.CURRENT_STALL_ID ||
       window.currentStallId ||
@@ -75,10 +86,9 @@
 
     if (direct) return String(direct);
 
-    // 2) Use the same approach as vendor-management.js
-    const vendorId = detectVendorIdFromUI(); // v1 / v2
+    const vendorId = detectVendorId(); // v1/v2
 
-    // Prefer Firestore users doc
+    // 2) Firestore users doc (preferred)
     if (window.DB?.getUserById) {
       try {
         const u = await window.DB.getUserById(vendorId);
@@ -88,17 +98,13 @@
       }
     }
 
-    // 3) Fallback mapping
+    // 3) fallback mapping
     return vendorId === "v2" ? "s2" : "s1";
   }
 
   function getListenFn() {
-    // Prefer db-compat wrapper
     if (window.DB?.orders?.listenByStall) return window.DB.orders.listenByStall;
-
-    // fallback older exports
     if (window.DB?._fs?.listenOrdersByStallId) return window.DB._fs.listenOrdersByStallId;
-
     return null;
   }
 
@@ -133,7 +139,6 @@
     _seen = new Set();
     _currentStall = stallId;
 
-    // Optional: show 1-time “enabled” toast so you know it’s running
     if (!_started) {
       _started = true;
       showToast("🔔 Live notifications enabled", `Listening for new orders (${stallId})`);
@@ -149,7 +154,7 @@
         return;
       }
 
-      // later snapshots: toast only for truly new orders
+      // later snapshots: toast only for new orders
       arr.forEach((o) => {
         if (_seen.has(o.id)) return;
         _seen.add(o.id);
@@ -167,7 +172,7 @@
     console.log("[LiveNotif] Listening for orders on stall:", stallId);
   }
 
-  function waitForReady() {
+  function boot() {
     const start = Date.now();
 
     const timer = setInterval(async () => {
@@ -195,8 +200,8 @@
   }
 
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", waitForReady);
+    document.addEventListener("DOMContentLoaded", boot);
   } else {
-    waitForReady();
+    boot();
   }
 })();

@@ -1,10 +1,13 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>Redirecting...</title>
+  <title>redirecting...</title>
 </head>
 <body>
+  <!-- this tiny page is a "guard + router" for nea users -->
+  <!-- if you're not logged in as nea, it sends you back to the account/login page -->
+  <!-- if you are nea, it sends you to the first nea page (schedule) -->
   <script>
     try {
       const u = JSON.parse(localStorage.getItem("hawkerSessionUser_v1") || "null");

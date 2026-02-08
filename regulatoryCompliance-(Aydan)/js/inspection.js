@@ -1,18 +1,23 @@
-// regulatoryCompliance-(Aydan)/js/inspection.js
+// log inspection page logic (nea)
+// main flow:
+// - user selects a scheduled inspection (so we know which stall + date this log belongs to)
+// - officer enters score + remarks
+// - officer can attach violations (pulled from db.js catalog, plus optional custom ones)
+// - when saving, we compute grade + expiry, store inspection in firestore, then store violations under that inspection
+// - finally, we mark the scheduled inspection as completed
+
 document.addEventListener("DOMContentLoaded", function () {
-  // db.js globals expected:
+  // this file assumes db.js globals exist:
   // loadDB(), saveDB(), scoreToGrade(), addDaysToDate()
 
-  // -----------------------
-  // Elements (support NEW + OLD html)
-  // -----------------------
-  const scheduleSelect = document.getElementById("scheduleSelect"); // NEW
-  const stallNameEl = document.getElementById("stallName");         // NEW
-  const scheduledDateTextEl = document.getElementById("scheduledDate"); // NEW display span
+  // grab ui elements (supports both the newer schedule-based html and the older fallback html)
+  const scheduleSelect = document.getElementById("scheduleSelect"); 
+  const stallNameEl = document.getElementById("stallName");
+  const scheduledDateTextEl = document.getElementById("scheduledDate"); 
 
-  const stallSelect = document.getElementById("stallSelect");       // OLD
-  const scheduledDateInput = document.getElementById("scheduledDate"); // OLD input (same id; if input exists, it's OLD)
-  const conductedDateEl = document.getElementById("conductedDate"); // OLD
+  const stallSelect = document.getElementById("stallSelect"); 
+  const scheduledDateInput = document.getElementById("scheduledDate"); 
+  const conductedDateEl = document.getElementById("conductedDate"); 
 
   const scoreEl = document.getElementById("score");
   const remarksEl = document.getElementById("remarks");
@@ -22,32 +27,33 @@ document.addEventListener("DOMContentLoaded", function () {
   const violationsList = document.getElementById("violationsList");
 
   const saveBtn =
-    document.getElementById("saveInspectionBtn") || // NEW
-    document.getElementById("saveBtn");             // OLD
+    document.getElementById("saveInspectionBtn") ||
+    document.getElementById("saveBtn");
 
   const msgEl = document.getElementById("msg");
 
+  // if violation ui is missing, saving would be confusing, so we stop early
   if (!violationSelect || !addViolationBtn || !violationsList) {
-    console.error("Missing violation UI elements. Check IDs in inspection.html");
+    console.error("missing violation ui elements. check ids in inspection.html");
     return;
   }
 
-  // In-memory list for this form
+  // this array holds violations that the officer added before hitting save
   let pendingViolations = [];
 
-  // -----------------------
-  // 1) Populate VIOLATION dropdown from db.js (same as your old code)
-  // -----------------------
+  // 1) dropdown: load violation catalog from db.js (static seed)
   function populateViolationDropdown(selectedCode) {
     const dbNow = loadDB();
     const list = (dbNow.violationCatalog || []).slice();
 
+    // sort so the dropdown feels consistent (v001, v002, ...)
     list.sort(function (a, b) {
       return String(a.code).localeCompare(String(b.code));
     });
 
+    // special option to trigger the "add custom violation" prompt flow
     let options = [];
-    options.push('<option value="__custom__">➕ Add custom violation…</option>');
+    options.push('<option value="__custom__">➕ add custom violation…</option>');
     options = options.concat(
       list.map(function (v) {
         return (
@@ -66,6 +72,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     violationSelect.innerHTML = options.join("");
 
+    // keep selection stable after adding a new custom item
     if (selectedCode) {
       violationSelect.value = selectedCode;
     } else if (list.length) {
@@ -75,6 +82,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   }
 
+  // auto-generates the next available code like v001, v002, ...
   function nextCustomCode(dbNow) {
     let max = 0;
     (dbNow.violationCatalog || []).forEach(function (v) {
@@ -85,45 +93,46 @@ document.addEventListener("DOMContentLoaded", function () {
     return "V" + String(next).padStart(3, "0");
   }
 
+  // initial load of the dropdown
   populateViolationDropdown();
 
-  // Add selected violation into pending list
+  
+  // 2) add violations into the pending list (before saving)
+  
   addViolationBtn.addEventListener("click", function () {
     const dbNow = loadDB();
     let selected = violationSelect.value;
 
-    // --- Custom violation flow (same idea as your old code) ---
+    // if user picked the special "__custom__" option, we prompt and save into db.js catalog
+    // note: the html also contains a custom-violation row, but this version uses prompt flow for simplicity
     if (selected === "__custom__") {
-      let title = prompt(
-        "Enter custom violation title (e.g., 'Raw food stored with cooked food'):"
-      );
+      let title = prompt("enter custom violation title (e.g., 'raw food stored with cooked food'):");
       if (!title) return;
 
-      let sev = prompt("Enter severity: MINOR / MAJOR / CRITICAL", "MAJOR");
+      let sev = prompt("enter severity: minor / major / critical", "MAJOR");
       sev = String(sev || "").toUpperCase().trim();
       if (!["MINOR", "MAJOR", "CRITICAL"].includes(sev)) {
-        alert("Invalid severity. Please use MINOR, MAJOR, or CRITICAL.");
+        alert("invalid severity. please use minor, major, or critical.");
         return;
       }
 
-      // auto-generate suggested code
+      // suggest the next code automatically
       const suggested = nextCustomCode(dbNow);
-      let code = prompt(
-        "Enter code (optional). Leave blank to auto-generate:",
-        suggested
-      );
+      let code = prompt("enter code (optional). leave blank to auto-generate:", suggested);
       code = String(code || "").toUpperCase().trim();
       if (!code) code = suggested;
 
+      // prevent duplicate codes so the catalog stays clean
       dbNow.violationCatalog = dbNow.violationCatalog || [];
       const exists = dbNow.violationCatalog.some(function (v) {
         return v.code === code;
       });
       if (exists) {
-        alert("That code already exists. Try a different code.");
+        alert("that code already exists. try a different code.");
         return;
       }
 
+      // write custom catalog entry into db.js storage
       dbNow.violationCatalog.push({
         code: code,
         title: title,
@@ -132,12 +141,12 @@ document.addEventListener("DOMContentLoaded", function () {
 
       saveDB(dbNow);
 
-      // refresh dropdown and auto-select the new code
+      // refresh dropdown and keep the new code selected
       populateViolationDropdown(code);
       selected = code;
     }
 
-    // --- Add selected premade/custom violation to THIS inspection ---
+    // now add the selected violation into this inspection's pending list
     const latest = loadDB();
     const vio = (latest.violationCatalog || []).find(function (x) {
       return x.code === selected;
@@ -154,9 +163,10 @@ document.addEventListener("DOMContentLoaded", function () {
     renderPendingViolations();
   });
 
+  // renders the pending list so officer can review/remove before saving
   function renderPendingViolations() {
     if (pendingViolations.length === 0) {
-      violationsList.innerHTML = '<div class="small">No violations added.</div>';
+      violationsList.innerHTML = '<div class="small">no violations added.</div>';
       return;
     }
 
@@ -173,7 +183,7 @@ document.addEventListener("DOMContentLoaded", function () {
           ")</span></div>" +
           "<button type='button' class='btn-ghost' data-idx='" +
           idx +
-          "'>Remove</button>" +
+          "'>remove</button>" +
           "</div>"
         );
       })
@@ -181,6 +191,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     violationsList.innerHTML = html;
 
+    // wire remove buttons after the html is injected
     Array.prototype.slice
       .call(violationsList.querySelectorAll("button[data-idx]"))
       .forEach(function (btn) {
@@ -192,11 +203,11 @@ document.addEventListener("DOMContentLoaded", function () {
       });
   }
 
+  // show initial empty state
   renderPendingViolations();
 
-  // -----------------------
-  // 2) Firestore stuff: WAIT for window.DB instead of returning early
-  // -----------------------
+  // 3) firestore: wait until window.DB is ready
+  
   function waitForDB(maxMs) {
     const start = Date.now();
     return new Promise((resolve) => {
@@ -208,48 +219,55 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   }
 
-  // NEW schedule-based flow (if scheduleSelect exists)
+  
+  // 4) schedule-based mode: load scheduled inspections into dropdown
+ 
   let scheduled = [];
   let selectedSchedule = null;
 
   async function initScheduleIfNeeded() {
+    // if the page doesn't have scheduleSelect, we're on the older html, so skip
     if (!scheduleSelect) return;
 
     const ok = await waitForDB(5000);
     if (!ok) {
-      showMsg("Firestore not ready. Check firebase/db-compat script loading.", true);
+      showMsg("firestore not ready. check script loading order.", true);
       if (saveBtn) saveBtn.disabled = true;
       return;
     }
 
     if (typeof DB.getScheduledInspections !== "function") {
-      showMsg("DB.getScheduledInspections missing (db-compat.js).", true);
+      showMsg("db.getScheduledInspections missing (db-compat.js).", true);
       if (saveBtn) saveBtn.disabled = true;
       return;
     }
 
+    // load scheduled inspections that are still pending
     scheduled = await DB.getScheduledInspections("scheduled");
 
     if (!scheduled.length) {
-      scheduleSelect.innerHTML = `<option value="">(No scheduled inspections)</option>`;
+      scheduleSelect.innerHTML = `<option value="">(no scheduled inspections)</option>`;
       if (stallNameEl) stallNameEl.textContent = "-";
       if (scheduledDateTextEl && scheduledDateTextEl.tagName === "SPAN") scheduledDateTextEl.textContent = "-";
       if (saveBtn) saveBtn.disabled = true;
       return;
     }
 
+    // create dropdown options using stall names from seed db (nicer than raw ids)
     const local = loadDB();
     scheduleSelect.innerHTML = scheduled
       .map(function (s) {
         const stallName =
           (local.stalls || []).find((x) => x.id === s.stallId)?.name || s.stallId;
-        return `<option value="${s.id}">${escapeHtml(stallName)} — Scheduled: ${escapeHtml(s.scheduledDate)}</option>`;
+        return `<option value="${s.id}">${escapeHtml(stallName)} — scheduled: ${escapeHtml(s.scheduledDate)}</option>`;
       })
       .join("");
 
+    // pick first schedule by default
     scheduleSelect.value = scheduled[0].id;
     pickSchedule();
 
+    // when officer changes schedule, update the displayed stall/date labels
     scheduleSelect.addEventListener("change", pickSchedule);
 
     function pickSchedule() {
@@ -264,51 +282,54 @@ document.addEventListener("DOMContentLoaded", function () {
 
       if (stallNameEl) stallNameEl.textContent = stallName;
 
-      // if your NEW html uses a <span id="scheduledDate">
       if (scheduledDateTextEl && scheduledDateTextEl.tagName === "SPAN") {
         scheduledDateTextEl.textContent = selectedSchedule.scheduledDate;
       }
     }
   }
 
-  // -----------------------
-  // 3) Save inspection (NEW + OLD)
-  // -----------------------
+  
+  // 5) save inspection: compute grade/expiry, write to firestore, attach violations, mark schedule completed
+  
   if (saveBtn) {
     saveBtn.addEventListener("click", async function (e) {
       e.preventDefault?.();
 
       const ok = await waitForDB(5000);
-      if (!ok) return showMsg("Firestore not ready. Check firebase/db-compat.", true);
+      if (!ok) return showMsg("firestore not ready. check firebase/db-compat.", true);
 
       try {
-        // Determine stall/date depending on html type
+        // decide which stall/date to use depending on whether we're in schedule mode or old mode
         let stallId, scheduledDate, conductedDate;
 
         if (scheduleSelect) {
-          // NEW: from schedule
-          if (!selectedSchedule) return showMsg("Please select a scheduled inspection.", true);
+          if (!selectedSchedule) return showMsg("please select a scheduled inspection.", true);
           stallId = selectedSchedule.stallId;
           scheduledDate = selectedSchedule.scheduledDate;
+
+          // for scheduled flow, conducted date = scheduled date (same day inspection)
           conductedDate = selectedSchedule.scheduledDate;
         } else {
-          // OLD
           stallId = stallSelect?.value;
           scheduledDate = scheduledDateInput?.value || null;
           conductedDate = conductedDateEl?.value || null;
         }
 
+        // validate score input (grade depends on it)
         const score = Number(scoreEl?.value);
-        if (!stallId) return showMsg("Please select a stall.", true);
-        if (!conductedDate) return showMsg("Please select conducted date.", true);
-        if (Number.isNaN(score) || score < 0 || score > 100)
-          return showMsg("Score must be 0–100.", true);
+        if (!stallId) return showMsg("please select a stall.", true);
+        if (!conductedDate) return showMsg("please select conducted date.", true);
+        if (Number.isNaN(score) || score < 0 || score > 100) {
+          return showMsg("score must be 0–100.", true);
+        }
 
+        // calculate grade + expiry based on your shared db.js helper logic
         const grade = scoreToGrade(score);
         const expiryDate = addDaysToDate(conductedDate, 180);
 
-        showMsg("Saving...", false);
+        showMsg("saving...", false);
 
+        // create inspection doc
         const inspectionId = await DB.addInspection({
           stallId,
           officerId: "nea1",
@@ -321,41 +342,45 @@ document.addEventListener("DOMContentLoaded", function () {
           scheduledRefId: selectedSchedule?.id || null,
         });
 
-        // save violations with inspection
+        // attach violations under this inspection id
         if (pendingViolations.length && typeof DB.addInspectionViolations === "function") {
           await DB.addInspectionViolations(inspectionId, pendingViolations);
         }
 
-        // mark schedule completed if NEW flow
+        // if this inspection came from the scheduled list, mark it completed so it disappears from the dropdown
         if (selectedSchedule && typeof DB.markScheduledCompleted === "function") {
           await DB.markScheduledCompleted(selectedSchedule.id);
         }
 
-        // reset
+        // reset the form so officer can log the next inspection quickly
         scoreEl.value = "";
         remarksEl.value = "";
         pendingViolations = [];
         renderPendingViolations();
 
-        showMsg("✅ Saved! (Grade " + grade + ")", false);
+        showMsg("✅ saved! (grade " + grade + ")", false);
 
-        // refresh schedule list if NEW flow
+        // refresh schedule options after saving (schedule-based mode only)
         if (scheduleSelect && typeof DB.getScheduledInspections === "function") {
           scheduled = await DB.getScheduledInspections("scheduled");
           if (!scheduled.length) {
-            scheduleSelect.innerHTML = `<option value="">(No scheduled inspections)</option>`;
+            scheduleSelect.innerHTML = `<option value="">(no scheduled inspections)</option>`;
             if (saveBtn) saveBtn.disabled = true;
           }
         }
       } catch (err) {
         console.error(err);
-        showMsg("Save failed: " + (err?.message || String(err)), true);
+        showMsg("save failed: " + (err?.message || String(err)), true);
       }
     });
   }
 
+  // kick off schedule dropdown init (only does work if scheduleSelect exists)
   initScheduleIfNeeded();
 
+  
+  // 6) small ui helpers
+  
   function showMsg(text, isError) {
     if (!msgEl) return;
     msgEl.textContent = text;

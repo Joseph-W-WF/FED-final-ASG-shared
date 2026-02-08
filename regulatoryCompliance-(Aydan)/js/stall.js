@@ -1,13 +1,23 @@
+// stall transparency page (nea)
+// this page lets nea (and in future maybe customers) see a stall's inspection history + trends
+// logic:
+// - stall list comes from db.js (seed) to populate the dropdown
+// - inspections come from firestore (so the table + charts reflect real logs)
+// - for charts, we look at the last 12 months and plot the latest inspection in each month
+
 document.addEventListener("DOMContentLoaded", function () {
+  // seed db for stall names + ids
   var local = loadDB();
 
+  // ui elements
   var stallSelect = document.getElementById("stallSelect");
   var historyTable = document.getElementById("historyTable");
 
+  // chart.js instance refs so we can destroy/recreate when switching stalls
   var gradeChartInstance = null;
   var scoreChartInstance = null;
 
-  // Populate dropdown from STATIC local stalls (hybrid)
+  // fill stall dropdown from seed list
   stallSelect.innerHTML = (local.stalls || [])
     .map(function (s) {
       return '<option value="' + s.id + '">' + s.name + "</option>";
@@ -16,46 +26,53 @@ document.addEventListener("DOMContentLoaded", function () {
 
   if ((local.stalls || []).length > 0) stallSelect.value = local.stalls[0].id;
 
+  // re-render when user picks a new stall
   stallSelect.addEventListener("change", function () {
     renderAll().catch(console.error);
   });
 
+  // initial render
   renderAll().catch(console.error);
 
   async function renderAll() {
     var stallId = stallSelect.value;
 
+    // firestore wrapper is needed for inspections; if missing, show helpful message
     if (!window.DB || typeof DB.getInspectionsByStall !== "function") {
       historyTable.innerHTML =
-        "<p class='small'>Firestore DB not loaded. Check your module script links (firebase.js, firestore-service.js, db-compat.js).</p>";
+        "<p class='small'>firestore db not loaded. check links (firebase.js, firestore-service.js, db-compat.js).</p>";
       return;
     }
 
-    // Read inspection history from Firestore
+    // fetch inspection history for this stall (from firestore)
     var inspections = await DB.getInspectionsByStall(stallId);
     inspections = Array.isArray(inspections) ? inspections : [];
 
+    // table includes violations (fetched per inspection)
     await renderHistoryTableFromFirestore(stallId, inspections);
+
+    // charts are computed from inspections list (monthly latest)
     renderMonthlyChartsFromFirestore(inspections);
   }
 
-  // -----------------------
-  // History table (WITH violations) — from Firestore
-  // -----------------------
+  // history table (with violations)
+  // logic:
+  // - sort newest first
+  // - for each inspection, fetch violations list (if api exists)
+  // - render a simple table with violations summarized in one cell
   async function renderHistoryTableFromFirestore(stallId, inspections) {
-    // sort newest first by conductedDate
     inspections.sort(function (a, b) {
       return new Date(b.conductedDate || 0) - new Date(a.conductedDate || 0);
     });
 
     if (inspections.length === 0) {
       historyTable.innerHTML =
-        "<p class='small'>No inspection history yet for this stall.</p>";
+        "<p class='small'>no inspection history yet for this stall.</p>";
       return;
     }
 
-    // Load violations for each inspection (small datasets -> ok)
-    var vioMap = {}; // inspectionId -> [vios]
+    // map inspectionId -> violations[] so we can render fast after fetching
+    var vioMap = {};
     if (typeof DB.getInspectionViolations === "function") {
       var pairs = await Promise.all(
         inspections.map(async function (ins) {
@@ -74,13 +91,15 @@ document.addEventListener("DOMContentLoaded", function () {
 
     var rows = inspections.map(function (ins) {
       var vios = vioMap[ins.id] || [];
+
+      // show compact text like "v001 (major), v010 (critical)"
       var vioText = vios.length
         ? vios
             .map(function (v) {
-              return (v.code || "V?") + " (" + (v.severity || "MAJOR") + ")";
+              return (v.code || "v?") + " (" + (v.severity || "MAJOR") + ")";
             })
             .join(", ")
-        : "None";
+        : "none";
 
       return (
         "<tr>" +
@@ -107,11 +126,11 @@ document.addEventListener("DOMContentLoaded", function () {
       '<table class="table">' +
       "<thead>" +
       "<tr>" +
-      "<th>Date</th>" +
-      "<th>Score</th>" +
-      "<th>Grade</th>" +
-      "<th>Expiry Date</th>" +
-      "<th>Violations</th>" +
+      "<th>date</th>" +
+      "<th>score</th>" +
+      "<th>grade</th>" +
+      "<th>expiry date</th>" +
+      "<th>violations</th>" +
       "</tr>" +
       "</thead>" +
       "<tbody>" +
@@ -120,13 +139,14 @@ document.addEventListener("DOMContentLoaded", function () {
       "</table>";
   }
 
-  // -----------------------
-  // Monthly charts (Grade + Score) — from Firestore inspections
-  // -----------------------
+  // charts (grade + score)
+  // logic:
+  // - build a list of last 12 months labels
+  // - find the latest inspection inside each month (yyyy-mm)
+  // - convert grade letters into numbers so chart.js can plot them (a=4..d=1)
   function renderMonthlyChartsFromFirestore(inspections) {
     var months = buildLast12Months();
 
-    // For each month, pick latest inspection in that month
     var monthToLatest = {};
     inspections.forEach(function (ins) {
       var dateStr = ins.conductedDate || "";
@@ -160,7 +180,7 @@ document.addEventListener("DOMContentLoaded", function () {
       return m.label;
     });
 
-    // ----- Grade chart -----
+    // grade chart: y axis ticks are converted back into letters for readability
     var gradeCanvas = document.getElementById("gradeChart");
     if (gradeCanvas) {
       if (gradeChartInstance) gradeChartInstance.destroy();
@@ -171,7 +191,7 @@ document.addEventListener("DOMContentLoaded", function () {
           labels: labels,
           datasets: [
             {
-              label: "Grade Trend (Monthly)",
+              label: "grade trend (monthly)",
               data: gradePoints,
               tension: 0.25,
               spanGaps: true,
@@ -201,7 +221,7 @@ document.addEventListener("DOMContentLoaded", function () {
       });
     }
 
-    // ----- Score chart -----
+    // score chart: plain 0-100 scale
     var scoreCanvas = document.getElementById("scoreChart");
     if (scoreCanvas) {
       if (scoreChartInstance) scoreChartInstance.destroy();
@@ -212,7 +232,7 @@ document.addEventListener("DOMContentLoaded", function () {
           labels: labels,
           datasets: [
             {
-              label: "Inspection Score (Monthly)",
+              label: "inspection score (monthly)",
               data: scorePoints,
               tension: 0.25,
               spanGaps: true,
@@ -228,6 +248,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   }
 
+  // builds labels for the last 12 months like "jan 2026"
   function buildLast12Months() {
     var out = [];
     var d = new Date();

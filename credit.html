@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Credits</title>
+
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      --bg:#f6f7fb;
+      --card:#ffffff;
+      --border:#e5e7eb;
+      --text:#111827;
+      --muted:#6b7280;
+      --shadow:0 10px 30px rgba(17,24,39,.08);
+      --radius:18px;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background:var(--bg);
+      color:var(--text);
+    }
+    .wrap{
+      max-width:980px;
+      margin:0 auto;
+      padding:24px 16px 44px;
+    }
+    .header{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:16px;
+      margin-bottom:16px;
+    }
+    h1{margin:0; font-size:34px; font-weight:900; letter-spacing:-.02em;}
+    .subtitle{margin:6px 0 0; color:var(--muted); font-weight:600;}
+    .btn{
+      display:inline-flex;
+      align-items:center;
+      gap:10px;
+      padding:10px 14px;
+      border-radius:999px;
+      border:1px solid var(--border);
+      background:#fff;
+      box-shadow:0 8px 20px rgba(17,24,39,.06);
+      text-decoration:none;
+      font-weight:800;
+      color:var(--text);
+      white-space:nowrap;
+    }
+    .btn:hover{background:#f9fafb}
+    .grid{
+      display:grid;
+      gap:14px;
+      grid-template-columns:repeat(2, minmax(0, 1fr));
+      margin-top:14px;
+    }
+    .card{
+      background:var(--card);
+      border:1px solid var(--border);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      padding:16px;
+      display:grid;
+      grid-template-columns:54px 1fr;
+      gap:12px;
+      align-items:start;
+    }
+    .icon{
+      width:54px;height:54px;
+      border-radius:16px;
+      display:grid; place-items:center;
+      background:rgba(99,102,241,.10);
+      border:1px solid rgba(99,102,241,.18);
+      font-size:24px;
+      user-select:none;
+    }
+    .title{margin:0; font-size:16px; font-weight:900;}
+    .meta{margin-top:4px; font-size:13px; color:var(--muted); font-weight:800;}
+    .desc{margin-top:10px; font-size:14px; line-height:1.55; color:#374151;}
+    .links{margin-top:10px; display:flex; flex-wrap:wrap; gap:10px;}
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      padding:8px 10px;
+      border-radius:999px;
+      border:1px solid var(--border);
+      background:rgba(17,24,39,.02);
+      font-weight:800;
+      font-size:13px;
+      text-decoration:none;
+      color:var(--text);
+    }
+    .pill:hover{background:rgba(17,24,39,.06)}
+    .foot{
+      margin-top:18px;
+      color:var(--muted);
+      font-size:12px;
+      line-height:1.6;
+    }
+    @media (max-width: 900px){
+      .grid{grid-template-columns:1fr}
+      .header{flex-direction:column; align-items:flex-start}
+    }
+  </style>
+</head>
+
+<body>
+  <main class="wrap">
+    <div class="header">
+      <div>
+        <h1>Credits</h1>
+        <p class="subtitle">Attributions & tools used in this project</p>
+      </div>
+
+      
+      <a class="btn" href="./index.html">← Back to website</a>
+    </div>
+
+    <section class="grid" aria-label="Credits list">
+      <div class="card">
+        <div class="icon" aria-hidden="true">🔥</div>
+        <div>
+          <h2 class="title">Firebase (Cloud Firestore)</h2>
+          <div class="meta">Database / real-time storage</div>
+          <div class="desc">Used for storing application data (e.g., users and records, depending on feature setup).</div>
+          <div class="links">
+            <a class="pill" href="https://firebase.google.com/" target="_blank" rel="noopener">Firebase</a>
+            <a class="pill" href="https://firebase.google.com/docs/firestore" target="_blank" rel="noopener">Firestore Docs</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="icon" aria-hidden="true">🤖</div>
+        <div>
+          <h2 class="title">ChatGPT</h2>
+          <div class="meta">AI assistance</div>
+          <div class="desc">Used to assist with debugging, planning, and improving code/UI during development.</div>
+          <div class="links">
+            <a class="pill" href="https://chat.openai.com/" target="_blank" rel="noopener">ChatGPT</a>
+            <a class="pill" href="https://openai.com/" target="_blank" rel="noopener">OpenAI</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="icon" aria-hidden="true">📘</div>
+        <div>
+          <h2 class="title">W3Schools</h2>
+          <div class="meta">Web reference</div>
+          <div class="desc">Used as a reference for HTML/CSS/JavaScript syntax and examples.</div>
+          <div class="links">
+            <a class="pill" href="https://www.w3schools.com/" target="_blank" rel="noopener">W3Schools</a>
+            <a class="pill" href="https://www.w3schools.com/js/" target="_blank" rel="noopener">JS Reference</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="icon" aria-hidden="true">📊</div>
+        <div>
+          <h2 class="title">Chart.js</h2>
+          <div class="meta">Charts library</div>
+          <div class="desc">Used for charts/visualisations (where applicable in the project).</div>
+          <div class="links">
+            <a class="pill" href="https://www.chartjs.org/" target="_blank" rel="noopener">Chart.js</a>
+            <a class="pill" href="https://www.chartjs.org/docs/latest/" target="_blank" rel="noopener">Docs</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <p class="foot">
+      Note: All trademarks and logos belong to their respective owners. This project credits tools/resources used for educational development.
+    </p>
+  </main>
+</body>
+</html>

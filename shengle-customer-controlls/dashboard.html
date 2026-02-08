@@ -411,6 +411,82 @@
             cursor: pointer;
         }
 
+        /* History Section */
+        .history-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+
+        .history-section {
+            background: #fff;
+            border-radius: 16px;
+            padding: 25px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .history-section h3 {
+            margin-top: 0;
+            margin-bottom: 20px;
+            font-size: 18px;
+            color: #333;
+        }
+
+        .history-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .history-item {
+            padding: 15px;
+            border-left: 4px solid #5b5ce6;
+            background: #f9f9f9;
+            margin-bottom: 12px;
+            border-radius: 4px;
+        }
+
+        .history-item.complaint {
+            border-left-color: #ff3b30;
+        }
+
+        .history-item.feedback {
+            border-left-color: #34c759;
+        }
+
+        .history-item-title {
+            font-weight: bold;
+            margin-bottom: 6px;
+            color: #333;
+        }
+
+        .history-item-meta {
+            font-size: 12px;
+            color: #777;
+            margin-bottom: 8px;
+        }
+
+        .history-item-content {
+            font-size: 14px;
+            color: #555;
+            word-wrap: break-word;
+        }
+
+        .history-item-rating {
+            margin-top: 8px;
+            font-size: 12px;
+            color: #ff9500;
+        }
+
+        .empty-message {
+            text-align: center;
+            padding: 30px 15px;
+            color: #999;
+            font-size: 14px;
+        }
+
         /* Responsive */
         @media (max-width: 768px) {
             .dashboard {
@@ -490,6 +566,9 @@
             </li>
             <li class="nav-item">
                 <button class="nav-link" onclick="switchSection('complaints')">📢 Complaints</button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link" onclick="switchSection('history')">📋 History</button>
             </li>
         </ul>
     </div>
@@ -626,6 +705,28 @@
             </div>
         </div>
 
+        <!-- History Section -->
+        <div id="history" class="section">
+            <div style="margin-bottom:30px;">
+                <h2 style="margin-top:0;">📋 Feedback & Complaint History</h2>
+            </div>
+            <div class="history-container">
+                <div class="history-section">
+                    <h3>⭐ Your Feedback</h3>
+                    <ul id="feedbackList" class="history-list">
+                        <div class="empty-message">No feedback submitted yet</div>
+                    </ul>
+                </div>
+
+                <div class="history-section">
+                    <h3>📢 Your Complaints</h3>
+                    <ul id="complaintsList" class="history-list">
+                        <div class="empty-message">No complaints submitted yet</div>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
     </div>
 </div>
 
@@ -720,7 +821,6 @@
 
     onAuthStateChanged(auth, async (user) => {
         if (!user) {
-            window.location.href = '../../../user-account-management-Joseph/HTML/account.html';
             return;
         }
 
@@ -752,7 +852,6 @@
 
     logoutBtn.addEventListener("click", async () => {
         await signOut(auth);
-        window.location.href = '../../../user-account-management-Joseph/HTML/account.html';
     });
 
     async function loadNotifications(uid) {
@@ -832,7 +931,75 @@
         
         document.getElementById(sectionId).classList.add('active');
         event.target.classList.add('active');
+        
+        // Load history when switching to history section
+        if (sectionId === 'history' && currentUser) {
+            loadFeedbackHistory(currentUser.uid);
+            loadComplaintsHistory(currentUser.uid);
+        }
     };
+
+    async function loadFeedbackHistory(uid) {
+        try {
+            const feedbackList = document.getElementById('feedbackList');
+            const q = query(collection(db, 'feedback'), where('userId', '==', uid), orderBy('timestamp', 'desc'));
+            const snap = await getDocs(q);
+            
+            if (snap.empty) {
+                feedbackList.innerHTML = '<div class="empty-message">No feedback submitted yet</div>';
+                return;
+            }
+            
+            feedbackList.innerHTML = '';
+            snap.forEach(doc => {
+                const data = doc.data();
+                const date = data.timestamp?.toDate ? data.timestamp.toDate().toLocaleDateString() : 'Unknown date';
+                const rating = data.rating ? '★'.repeat(data.rating) : 'No rating';
+                
+                const li = document.createElement('li');
+                li.className = 'history-item feedback';
+                li.innerHTML = `
+                    <div class="history-item-meta">${date}</div>
+                    <div class="history-item-rating">${rating}</div>
+                    <div class="history-item-content">${data.text || 'No content'}</div>
+                `;
+                feedbackList.appendChild(li);
+            });
+        } catch (err) {
+            console.error("Error loading feedback history:", err);
+        }
+    }
+
+    async function loadComplaintsHistory(uid) {
+        try {
+            const complaintsList = document.getElementById('complaintsList');
+            const q = query(collection(db, 'complaints'), where('userId', '==', uid), orderBy('timestamp', 'desc'));
+            const snap = await getDocs(q);
+            
+            if (snap.empty) {
+                complaintsList.innerHTML = '<div class="empty-message">No complaints submitted yet</div>';
+                return;
+            }
+            
+            complaintsList.innerHTML = '';
+            snap.forEach(doc => {
+                const data = doc.data();
+                const date = data.timestamp?.toDate ? data.timestamp.toDate().toLocaleDateString() : 'Unknown date';
+                const store = data.store || 'Unknown store';
+                
+                const li = document.createElement('li');
+                li.className = 'history-item complaint';
+                li.innerHTML = `
+                    <div class="history-item-title">${data.title || 'No title'}</div>
+                    <div class="history-item-meta">${store} • ${date}</div>
+                    <div class="history-item-content">${data.details || 'No details'}</div>
+                `;
+                complaintsList.appendChild(li);
+            });
+        } catch (err) {
+            console.error("Error loading complaints history:", err);
+        }
+    }
 
     window.openModal = function(modalId) {
         document.getElementById(modalId).classList.add('active');

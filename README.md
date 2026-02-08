@@ -500,7 +500,42 @@ Doc ID: `nea001` (this is what you type into the NEA “ID” field)
 * Payment is **simulated UI-only** (no real payment gateway)
 * Passwords are stored in Firestore as plain text (prototype only — not production-safe)
 * Guest orders are stored by device key (so they persist on the same browser)
-
+* Local storage used to store session. ( Some error may occur when ordering from one account and the other account might see the orders)
 ---
 
 >>>>>>> 64551accaee692a05ea5aade528f1d303eaba791
+
+
+
+# Customer-controlls/ for Fed Assign (Shengle)
+
+## Feature where customer would generally use for a for delivery website
+
+This project is a website for an FED assignment to create a feaeture that would make the website more accessible to the user or more engaging something to improve the user experience
+
+What I have made are
+* Discount page where the use can spend points - have no way of generating them as of current
+* Feedback overlay - does not save you any API or locally
+* Complaint overlay - does not save you any API or locally
+* Nav overlay to move between these html file not connect to the rest of the group
+* Profile page to access the complaint and feedback overlay - i know there is already another profile but i does not have access to my overlay so it here
+* dashboard that gose to the group dashboard
+
+
+## How to install this project
+
+1. clone this project
+2. Install live server on you code editor and run live server 
+3. Use the nav bar to navigate throught the diffect html file or run live server on the html itself
+
+## How other contributors can tweak the projects
+
+This is a website project, and don't know what most of how API(firebase) work this would be the best place to help out but if you want to help in other areas. Please leave a comment on what you can changed and how it would change the function of the website
+
+## Known issues (Things that i don't know how it works)
+
+As this is an assignment for learning there are a lot of thing that I used that are based of vide guide and tutorials so here's a list of them
+
+* The nav bar being off centre for some of the html
+* Now to link my html/js to the working API (Firebase)
+* The discount page does not have a poitn earning source

@@ -1,7 +1,6 @@
 // ========================================
 // db.js (In-Memory Database)
 // Beginner-friendly, shared across pages
-// NO backend, NO localStorage
 // ========================================
 
 const DB_KEY = "hawkerDB_v1"; // kept for compatibility (not used)

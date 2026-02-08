@@ -41,127 +41,76 @@ document.addEventListener("DOMContentLoaded", function () {
   // this array holds violations that the officer added before hitting save
   let pendingViolations = [];
 
-  // 1) dropdown: load violation catalog from db.js (static seed)
-  function populateViolationDropdown(selectedCode) {
-    const dbNow = loadDB();
-    const list = (dbNow.violationCatalog || []).slice();
+  // -----------------------
+// -----------------------
+// 1) Populate VIOLATION dropdown from db.js (catalog only)
+// -----------------------
+function populateViolationDropdown(selectedCode) {
+  const dbNow = loadDB();
+  const list = (dbNow.violationCatalog || []).slice();
 
-    // sort so the dropdown feels consistent (v001, v002, ...)
-    list.sort(function (a, b) {
-      return String(a.code).localeCompare(String(b.code));
-    });
-
-    // special option to trigger the "add custom violation" prompt flow
-    let options = [];
-    options.push('<option value="__custom__">➕ add custom violation…</option>');
-    options = options.concat(
-      list.map(function (v) {
-        return (
-          '<option value="' +
-          v.code +
-          '">' +
-          escapeHtml(v.code) +
-          " - " +
-          escapeHtml(v.title) +
-          " (" +
-          escapeHtml(v.severityDefault) +
-          ")</option>"
-        );
-      })
-    );
-
-    violationSelect.innerHTML = options.join("");
-
-    // keep selection stable after adding a new custom item
-    if (selectedCode) {
-      violationSelect.value = selectedCode;
-    } else if (list.length) {
-      violationSelect.value = list[0].code;
-    } else {
-      violationSelect.value = "__custom__";
-    }
-  }
-
-  // auto-generates the next available code like v001, v002, ...
-  function nextCustomCode(dbNow) {
-    let max = 0;
-    (dbNow.violationCatalog || []).forEach(function (v) {
-      const m = String(v.code || "").match(/^V(\d{3})$/);
-      if (m) max = Math.max(max, Number(m[1]));
-    });
-    const next = max + 1;
-    return "V" + String(next).padStart(3, "0");
-  }
-
-  // initial load of the dropdown
-  populateViolationDropdown();
-
-  
-  // 2) add violations into the pending list (before saving)
-  
-  addViolationBtn.addEventListener("click", function () {
-    const dbNow = loadDB();
-    let selected = violationSelect.value;
-
-    // if user picked the special "__custom__" option, we prompt and save into db.js catalog
-    // note: the html also contains a custom-violation row, but this version uses prompt flow for simplicity
-    if (selected === "__custom__") {
-      let title = prompt("enter custom violation title (e.g., 'raw food stored with cooked food'):");
-      if (!title) return;
-
-      let sev = prompt("enter severity: minor / major / critical", "MAJOR");
-      sev = String(sev || "").toUpperCase().trim();
-      if (!["MINOR", "MAJOR", "CRITICAL"].includes(sev)) {
-        alert("invalid severity. please use minor, major, or critical.");
-        return;
-      }
-
-      // suggest the next code automatically
-      const suggested = nextCustomCode(dbNow);
-      let code = prompt("enter code (optional). leave blank to auto-generate:", suggested);
-      code = String(code || "").toUpperCase().trim();
-      if (!code) code = suggested;
-
-      // prevent duplicate codes so the catalog stays clean
-      dbNow.violationCatalog = dbNow.violationCatalog || [];
-      const exists = dbNow.violationCatalog.some(function (v) {
-        return v.code === code;
-      });
-      if (exists) {
-        alert("that code already exists. try a different code.");
-        return;
-      }
-
-      // write custom catalog entry into db.js storage
-      dbNow.violationCatalog.push({
-        code: code,
-        title: title,
-        severityDefault: sev,
-      });
-
-      saveDB(dbNow);
-
-      // refresh dropdown and keep the new code selected
-      populateViolationDropdown(code);
-      selected = code;
-    }
-
-    // now add the selected violation into this inspection's pending list
-    const latest = loadDB();
-    const vio = (latest.violationCatalog || []).find(function (x) {
-      return x.code === selected;
-    });
-    if (!vio) return;
-
-    pendingViolations.push({
-      code: vio.code,
-      title: vio.title,
-      severity: vio.severityDefault,
-      notes: "",
-    });
-
-    renderPendingViolations();
+  list.sort(function (a, b) {
+    return String(a.code).localeCompare(String(b.code));
   });
+
+  // if catalog empty, disable add button
+  if (list.length === 0) {
+    violationSelect.innerHTML =
+      '<option value="" disabled selected>(no violations found in catalog)</option>';
+    violationSelect.value = "";
+    addViolationBtn.disabled = true;
+    return;
+  }
+
+  addViolationBtn.disabled = false;
+
+  const options = list.map(function (v) {
+    return (
+      '<option value="' +
+      v.code +
+      '">' +
+      escapeHtml(v.code) +
+      " - " +
+      escapeHtml(v.title) +
+      " (" +
+      escapeHtml(v.severityDefault) +
+      ")</option>"
+    );
+  });
+
+  violationSelect.innerHTML = options.join("");
+
+  if (selectedCode) {
+    violationSelect.value = selectedCode;
+  } else {
+    violationSelect.value = list[0].code;
+  }
+}
+
+populateViolationDropdown();
+
+// Add selected violation into pending list (catalog only)
+addViolationBtn.addEventListener("click", function () {
+  const selected = violationSelect.value;
+  if (!selected) return;
+
+  const latest = loadDB();
+  const vio = (latest.violationCatalog || []).find(function (x) {
+    return x.code === selected;
+  });
+  if (!vio) return;
+
+  pendingViolations.push({
+    code: vio.code,
+    title: vio.title,
+    severity: vio.severityDefault,
+    notes: "",
+  });
+
+  renderPendingViolations();
+});
+
+  
 
   // renders the pending list so officer can review/remove before saving
   function renderPendingViolations() {

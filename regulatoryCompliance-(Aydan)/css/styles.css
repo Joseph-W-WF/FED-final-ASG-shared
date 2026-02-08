@@ -337,11 +337,6 @@ button:hover{ background: var(--accent-dark); }
   color: #111827;
 }
 
-/* small fix so the custom violation input doesn't shrink too much */
-#customViolation { 
-  flex: 1; 
-  min-width: 220px;
-}
 
 /* sidebar toggle behavior (desktop/tablet): slide the sidebar away */
 .sidebar {

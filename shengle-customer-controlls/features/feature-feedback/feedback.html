@@ -1,106 +1,276 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>REVIEW AND FEEDBACK FORM</title>
+    <title>Feedback</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            background-color: #f4f4f4;
+        }
+
+        nav {
+            background: #5b5ce6;
+            color: #fff;
+            padding: 15px 20px;
+            display: flex;
+            align-items: center;
+            position: relative;
+            z-index: 100;
+        }
+
+        .hamburger {
+            background: none;
+            border: none;
+            color: #fff;
+            font-size: 28px;
+            cursor: pointer;
+            padding: 0;
+            margin-right: 20px;
+        }
+
+        .nav-title {
+            flex: 1;
+            text-align: center;
+            font-weight: bold;
+            font-size: 18px;
+        }
+
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 200;
+        }
+
+        .sidebar-overlay.active {
+            display: block;
+        }
+
+        .sidebar-menu {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 250px;
+            height: 100vh;
+            background: #5b5ce6;
+            color: #fff;
+            padding: 20px;
+            z-index: 300;
+            transform: translateX(-100%);
+            transition: transform 0.3s ease;
+            overflow-y: auto;
+        }
+
+        .sidebar-menu.active {
+            transform: translateX(0);
+        }
+
+        .sidebar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .sidebar-header h2 {
+            margin: 0;
+            font-size: 18px;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            color: #fff;
+            font-size: 28px;
+            cursor: pointer;
+            padding: 0;
+        }
+
+        .nav-menu {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .nav-menu li {
+            margin-bottom: 0;
+        }
+
+        .nav-menu a {
+            display: block;
+            color: #fff;
+            text-decoration: none;
+            padding: 12px 16px;
+            border-radius: 8px;
+            transition: background 0.3s;
+            margin-bottom: 8px;
+        }
+
+        .nav-menu a:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .main-content {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: calc(100vh - 60px);
+            padding: 20px;
+        }
+
+        .container {
+            background-color: #fff;
+            padding: 30px;
+            width: 100%;
+            max-width: 400px;
+            border-radius: 20px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        h1 {
+            margin-bottom: 20px;
+            font-size: 20px;
+        }
+
+        h2 {
+            margin-bottom: 10px;
+            text-align: left;
+            font-size: 14px;
+        }
+
+        .star-rating {
+            display: flex;
+            justify-content: flex-start;
+            flex-direction: row-reverse;
+            font-size: 25px;
+            margin-bottom: 20px;
+        }
+
+        .star-rating input {
+            display: none;
+        }
+
+        .star-rating label {
+            color: #ccc;
+            cursor: pointer;
+            transition: color 0.3s;
+            margin-right: 5px;
+        }
+
+        .star-rating input:checked ~ label,
+        .star-rating label:hover,
+        .star-rating label:hover ~ label {
+            color: gold;
+        }
+
+        textarea {
+            width: 100%;
+            height: 100px;
+            font-family: Arial, sans-serif;
+            margin-bottom: 15px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            resize: none;
+            box-sizing: border-box;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background: #5b5ce6;
+            border: none;
+            color: #fff;
+            font-size: 16px;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: background 0.3s;
+            font-weight: bold;
+        }
+
+        button:hover {
+            background: #4647d6;
+        }
+    </style>
 </head>
-<style>
-    body{
-        font-family: Arial, Helvetica, sans-serif;
-        background-color: #f4f4f4;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        height: 100vh;
-        margin:0;
-    }
-    .container{
-        background-color: #fff;
-        padding: 20px;
-        width: 300px;
-        border-radius:8px;
-        box-shadow: 0xp 4px 8px rgba(0,0,0,0.1);
-        text-align: center;
-    }
-    
-    h2{
-        margin-bottom: 10px;
-        text-align: left;
-    }
-    .star-rating{
-        display: flex;
-        justify-content: left;
-        flex-direction: row-reverse;
-        font-size: 25px;
-    }
-    .star-rating input{
-        display: none;
-    }
-    .star-rating label{
-        color: #ccc;
-        cursor: pointer;
-        transition: color 0.3s;
-    }
-    .star-rating input:checked ~ label, .star-rating label:hover,.star-rating label:hover ~ label{
-        color: gold;
-    }
-
-    textarea{
-        width: 100%;
-        height: 80px;
-        font-family: arial;
-        margin-top: 10px;
-        padding: 10px;
-        border: 1px solid #ccc;
-        border-radius: 5px;
-        resize: none;
-        box-sizing: border-box;
-    }
-
-    button{
-        width: 100%;
-        padding: 10px;
-        margin-top: 10px;
-        background: #5b5ce6;
-        border: none;
-        color: #fff;
-        font-size: 16px;
-        cursor: pointer;
-        border-radius: 5px;
-        transition: background 0.3s;
-    } 
-
-    button:hover{
-        background: #4647d6;
-    }
-</style>
 <body>
-    <div class="container">
-        <h1>Leave A Review</h1>
-        <form action="#">
-            <div class="star-rating">
-                <input type ="radio" id="star5" value="5">
-                <label for="star5">&#9733</label>
+    <nav>
+        <button class="hamburger" onclick="toggleSidebar()">☰</button>
+        <div class="nav-title">Feedback</div>
+    </nav>
 
-                <input type ="radio" id="star4" value="4">
-                <label for="star4">&#9733</label>                
-                
-                <input type ="radio" id="star3" value="3">
-                <label for="star3">&#9733</label>
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
 
-                <input type ="radio" id="star2" value="2">
-                <label for="star2">&#9733</label>
-                
-                <input type ="radio" id="star1" value="1">
-                <label for="star1">&#9733</label>                
-            </div>
-            
-            <textarea name="#" id="#"  placeholder="Write your feedback..." required></textarea>
-            <button type="submit">Submit  Review</button>
-        </form>
+    <div class="sidebar-menu" id="sidebarMenu">
+        <div class="sidebar-header">
+            <h2>Menu</h2>
+            <button class="close-btn" onclick="closeSidebar()">✕</button>
+        </div>
+        <ul class="nav-menu">
+            <li><a href="../../dashboard.html">Dashboard</a></li>
+            <li><a href="../feature-profile/profile.html">Profile</a></li>
+            <li><a href="../feature-discount/discount-page.html">Rewards</a></li>
+            <li><a href="../feature-feedback/feedback.html">Feedback</a></li>
+            <li><a href="../feature-compliant/compliant.html">Complaints</a></li>
+        </ul>
     </div>
+
+    <div class="main-content">
+        <div class="container">
+            <h1>Leave A Review</h1>
+            <form action="#">
+                <h2>Rating</h2>
+                <div class="star-rating">
+                    <input type="radio" id="star5" name="rating" value="5">
+                    <label for="star5">★</label>
+
+                    <input type="radio" id="star4" name="rating" value="4">
+                    <label for="star4">★</label>
+
+                    <input type="radio" id="star3" name="rating" value="3">
+                    <label for="star3">★</label>
+
+                    <input type="radio" id="star2" name="rating" value="2">
+                    <label for="star2">★</label>
+
+                    <input type="radio" id="star1" name="rating" value="1">
+                    <label for="star1">★</label>
+                </div>
+
+                <textarea name="feedback" placeholder="Write your feedback..." required></textarea>
+                <button type="submit">Submit Review</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function toggleSidebar() {
+            const sidebar = document.getElementById("sidebarMenu");
+            const overlay = document.getElementById("sidebarOverlay");
+            sidebar.classList.toggle("active");
+            overlay.classList.toggle("active");
+        }
+
+        function closeSidebar() {
+            const sidebar = document.getElementById("sidebarMenu");
+            const overlay = document.getElementById("sidebarOverlay");
+            sidebar.classList.remove("active");
+            overlay.classList.remove("active");
+        }
+    </script>
 </body>
 </html>
-
-  <!-- --accent: #5b5ce6; -->
-  <!-- --accent-dark: #4647d6; -->

@@ -368,6 +368,24 @@
 
     // IMPORTANT: also store locally so your existing verifyOtp() works unchanged
     var dbLocal = loadDBSafe();
+    // Ensure the Firestore user exists in local DB too (needed for resetPassword())
+    var idx = dbLocal.users.findIndex(function (u) { return u.id === user.id; });
+
+    if (idx === -1) {
+      dbLocal.users.push({
+        id: user.id,
+        role: user.role || "CUSTOMER",
+        username: user.username || user.email || user.phone || user.id,
+        usernameLower: (user.usernameLower || (user.username || "")).toLowerCase(),
+        email: user.email || "",
+        emailLower: (user.emailLower || (user.email || "")).toLowerCase(),
+        phone: user.phone || "",
+        password: user.password || "" // will be overwritten on reset
+      });
+    } else {
+      dbLocal.users[idx] = Object.assign({}, dbLocal.users[idx], user);
+    }
+
     dbLocal.passwordResets.push({
       id: resetId,
       userId: user.id,

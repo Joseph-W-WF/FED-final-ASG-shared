@@ -511,7 +511,7 @@ Doc ID: `nea001` (this is what you type into the NEA “ID” field)
 * Payment is **simulated UI-only** (no real payment gateway)
 * Passwords are stored in Firestore as plain text (prototype only — not production-safe)
 * Guest orders are stored by device key (so they persist on the same browser)
-
+* Local storage used to store session. ( Some error may occur when ordering from one account and the other account might see the orders)
 ---
 
 >>>>>>> 64551accaee692a05ea5aade528f1d303eaba791

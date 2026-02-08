@@ -1,33 +1,113 @@
 FED final assignment
 Store web/app data into db.js
 
-## Vendor Management page
-**Done by:** Lervyn Ang (S10273196B)
+## Vendor Management Page  
+**Contributor:** Lervyn Ang (S10273196B)
 
-### Overview
-The Vendor Management module focuses on supporting hawker stall owners in managing their daily operations through a centralised interface. This module allows vendors to manage menu items, track rental agreements and renewals, monitor stall performance, and review order history. The features are designed to improve operational efficiency, provide better visibility of stall performance, and enhance decision-making.
+---
 
-### Implemented Features
+# 1 Feature Summary
 
-#### Sidebar Navigation
-A sidebar-based navigation system is used to provide quick access to all vendor-related features, including menu management, rental agreements, performance dashboard, and order history. This allows vendors to switch between features efficiently without leaving the vendor portal.
+The Vendor Management module is designed to support hawker stall owners in managing their daily operations efficiently through a centralised vendor portal. This module allows vendors to manage menu items, track rental agreements and renewals, analyse stall performance through dashboards, and review order history related to their stall. The features focus on improving operational efficiency, visibility, and decision-making for vendors within the hawker centre system.
 
-#### Menu Management (Multiple Cuisines per Item)
-Vendors can add, edit, and delete menu items for their stall. Each menu item supports multiple cuisine tags, allowing flexible categorisation of food offerings, especially for fusion dishes. Menu items are filtered by stall ID to ensure vendors only manage their own stall’s menu.
+---
 
-#### Rental Agreement Management
-This feature allows vendors to view all current and past rental agreements associated with their stall. Each agreement displays details such as agreement ID, rental period, monthly amount, and status (active or expired).
+# 2 Implemented Features
 
-#### Rental Renewal
-Vendors can renew rental agreements by updating the rental period and rental amount. Previous agreements are retained to maintain a history of rental changes over time. Agreement status is automatically updated based on the rental end date.
+### 2.1 Sidebar Navigation (Vendor Portal)
 
-#### Stall Performance Dashboard
-The stall performance dashboard provides an overview of key performance metrics, including total orders, total revenue, sales trends over time, and top-selling menu items. Vendors can filter performance data by month range to analyse trends more effectively. At this stage, dashboard data is simulated on the front end for demonstration purposes.
+A sidebar-based navigation system is implemented to allow vendors to access all vendor-related features from a single interface. The sidebar includes links to:
+- Menu Management
+- Rental Agreement Management
+- Stall Performance Dashboard
+- Vendor Order History
 
-#### Vendor Order History
-The vendor order history feature allows stall owners to review orders placed at their stall. Orders can be filtered by status such as active, completed, or cancelled. Each order displays customer details, ordered items, payment method, and order date, helping vendors track sales activity and identify frequent or high-spending customers
+This navigation design ensures vendors can quickly switch between features without leaving the vendor portal, improving usability and workflow efficiency.
 
-=======
+---
+
+### 2.2 Menu Management (Multiple Cuisines per Item)
+
+The Menu Management feature allows vendors to add, edit, and delete menu items associated with their stall. Each menu item supports multiple cuisine tags, enabling flexible categorisation of food offerings, especially for fusion dishes that belong to more than one cuisine type.
+
+Key behaviours:
+- Menu items are filtered by stall ID to ensure vendors only manage their own stall’s menu.
+- Vendors can assign one or more cuisines using checkboxes during item creation or editing.
+- Menu items display cuisine tags clearly in the menu list.
+
+This feature improves menu organisation and enhances customer browsing experience.
+
+---
+
+### 2.3 Rental Agreement Management
+
+The Rental Agreement Management feature allows vendors to view all rental agreements associated with their stall, including both current and past agreements. Each agreement displays:
+- Agreement ID
+- Rental start and end dates
+- Monthly rental amount
+- Status (Active or Expired)
+
+Rental agreements are filtered by stall to prevent vendors from viewing agreements belonging to other stalls.
+
+---
+
+### 2.4 Rental Renewal
+
+Vendors can renew existing rental agreements by updating the rental period and rental amount. When a renewal occurs:
+- The agreement status is automatically updated based on the rental end date.
+- Previous agreement records are retained to maintain a history of rental changes over time.
+
+This feature supports proper rental tracking and aligns with the case requirement that stalls may have multiple rental agreements over time.
+
+---
+
+### 2.5 Stall Performance Dashboard
+
+The Stall Performance Dashboard provides vendors with a visual overview of their stall’s performance. Metrics displayed include:
+- Total number of orders
+- Total revenue
+- Monthly sales trends
+- Top-selling menu items
+
+Vendors can filter performance data by selecting a start and end month. At this stage of development, dashboard data is simulated on the front end for demonstration purposes, with the structure designed to support real data integration in future iterations.
+
+---
+
+### 2.6 Vendor Order History
+
+The Vendor Order History feature allows stall owners to review all orders placed at their stall. Orders can be filtered by status:
+- Active
+- Completed
+- Cancelled
+
+Each order displays:
+- Customer name
+- Order number
+- Ordered items and quantity
+- Payment method
+- Order date and time
+
+Orders are sorted by most recent date by default. This feature helps vendors monitor sales activity and identify frequent or high-spending customers.
+
+---
+
+# 3 Data Handling & Storage
+
+### Firestore Integration
+Vendor Management features primarily retrieve and update data using Firebase Firestore, including:
+- Menu items
+- Rental agreements
+- Orders
+
+Firestore documents are filtered using stall ID to ensure data isolation between vendors.
+
+# 4 Key Files (Vendor Module)
+
+- `VendorManangementLervyn/index.html` — Vendor portal UI
+- `VendorManangementLervyn/vendor-management.js` — Vendor management logic
+- `VendorManangementLervyn/vendor-management.css` — Vendor portal styling
+- `db.js / db-compat.js` — Data access abstraction (Firestore)
+
 
 
 ## Aydan Yeo Yu Jing (S10273117G) — Individual Features (Operational Enhancements + Regulatory & Compliance)

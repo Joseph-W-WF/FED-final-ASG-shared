@@ -549,4 +549,4 @@ As this is an assignment for learning there are a lot of thing that I used that 
 
 * The nav bar being off centre for some of the html
 * Now to link my html/js to the working API (Firebase)
-* The discount page
+* The discount page does not have a poitn earning source

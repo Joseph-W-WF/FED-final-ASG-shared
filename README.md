@@ -165,7 +165,7 @@ Open the account/login page first:
 
 - The queue ticket system is currently a reusable module; integrating it into a UI page requires adding buttons/forms on customer/vendor pages.
 - Firestore access depends on the project’s Firestore rules. 
-- Vendor live notifications require the vendor page to load the notification scripts (JS + CSS).
+- Vendor live notifications require the vendor page to load the notification scripts (JS + CSS). 
 
 
 ##Joseph Wong Wan Fong

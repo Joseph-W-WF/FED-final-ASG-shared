@@ -1,8 +1,5 @@
 // ========================================
-// VENDOR MANAGEMENT JAVASCRIPT (FIXED)
-// - Works with Firestore (async DB methods via db-compat.js)
-// - Fixes: menu + rental blank, order history still using db.js
-// - Fix: menu item id must be passed as string ("m1")
+// VENDOR MANAGEMENT JAVASCRIPT 
 // ========================================
 
 // -------------------- AUTH GUARD --------------------
@@ -41,7 +38,6 @@ function formatMoney(n) {
   return `$${x.toFixed(2)}`;
 }
 
-// Try read vendor id from UI ("V1" / "V2") -> "v1" / "v2"
 function detectUserIdFromUI() {
   const el =
     document.querySelector(".top-header-id") ||
@@ -50,15 +46,12 @@ function detectUserIdFromUI() {
 
   const raw = safeText(el?.textContent, "").trim();
   if (!raw) return "v1";
-  return raw.toLowerCase(); // V1 -> v1
+  return raw.toLowerCase(); 
 }
 
-// Resolve stallId + stallName from Firestore users doc (preferred)
-// fallback: match by hardcoded name
 async function resolveVendorContext() {
-  CURRENT_USER_ID = detectUserIdFromUI(); // v1 or v2
+  CURRENT_USER_ID = detectUserIdFromUI(); 
 
-  // 1) Prefer users collection: users/v1 has stallId
   if (window.DB?.getUserById) {
     const u = await maybeAwait(DB.getUserById(CURRENT_USER_ID));
     if (u && u.stallId) {
@@ -66,20 +59,16 @@ async function resolveVendorContext() {
     }
   }
 
-  // 2) Resolve stallName from stalls list
   if (window.DB?.getStalls && CURRENT_STALL_ID) {
     const stalls = await maybeAwait(DB.getStalls());
     const s = (stalls || []).find((x) => String(x.id) === String(CURRENT_STALL_ID));
     if (s) CURRENT_STALL_NAME = s.name;
   }
 
-  // 3) Fallbacks if missing
   if (!CURRENT_STALL_ID) {
-    // Minimal fallback: v1->s1, v2->s2
     CURRENT_STALL_ID = CURRENT_USER_ID === "v2" ? "s2" : "s1";
   }
   if (!CURRENT_STALL_NAME) {
-    // Minimal fallback
     CURRENT_STALL_NAME = CURRENT_USER_ID === "v2" ? "Indian Corner" : "Clemens Kitchen";
   }
 }
@@ -104,8 +93,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   setupVendorOrderHistory();
 
   await resolveVendorContext();
-
-  // initial renders
   await displayMenuItems();
   await displayRentalAgreements();
   await renderVendorOrders();
@@ -141,7 +128,6 @@ const setupSidebarToggle = () => {
 
   if (!sidebar || !main || !open || !close) return;
 
-  // default opened (as you want)
   open.style.display = "none";
 
   close.onclick = () => {
@@ -179,12 +165,10 @@ const setupMenuManagement = () => {
 };
 
 async function fetchMenuItemsForVendor() {
-  // Prefer stallId filter (matches your Firestore screenshots)
   if (DB.getMenuItemsByStallId) {
     return await maybeAwait(DB.getMenuItemsByStallId(CURRENT_STALL_ID));
   }
 
-  // fallback (older schema uses stallName)
   const all = await maybeAwait(DB.getMenuItems());
   if (!Array.isArray(all)) return [];
   return all.filter((m) => m.stallName === CURRENT_STALL_NAME);
@@ -197,7 +181,6 @@ const displayMenuItems = async (search = "") => {
   let items = await fetchMenuItemsForVendor();
   items = Array.isArray(items) ? items : [];
 
-  // normalize cuisines (some Firestore docs may not have cuisines array)
   items = items.map((i) => ({
     ...i,
     cuisines: Array.isArray(i.cuisines) ? i.cuisines : [],
@@ -251,14 +234,11 @@ const saveMenuItem = async () => {
   if (!name) return alert("Please enter item name.");
   if (!priceStr || Number.isNaN(price) || price <= 0) return alert("Please enter a valid price.");
 
-  // cuisines optional (because your Firestore menuItems may not store cuisines)
-  // if you want to enforce at least 1 cuisine, uncomment:
-  // if (cuisines.length === 0) return alert("Please select at least 1 cuisine.");
 
   const payload = {
     name,
     price,
-    cuisines,                 // safe even if your docs don’t use it
+    cuisines,                 
     stallId: CURRENT_STALL_ID,
     stallName: CURRENT_STALL_NAME,
     isAvailable: true,
@@ -383,7 +363,7 @@ const displayRentalAgreements = async (list = null) => {
   body.innerHTML = (data || [])
     .map((r) => {
       const status = safeText(r.status, "Unknown");
-      const docId = r._docId ? r._docId : null; // Firestore-service returns _docId
+      const docId = r._docId ? r._docId : null; 
       const agreementId = safeText(r.id, "");
 
       return `
@@ -411,7 +391,6 @@ const displayRentalAgreements = async (list = null) => {
 };
 
 const viewAgreementDetails = async (agreementId) => {
-  // Prefer Firestore: getRentalByAgreementId
   let r = null;
   if (DB.getRentalByAgreementId) r = await maybeAwait(DB.getRentalByAgreementId(agreementId));
   else if (DB.getRentalById) r = await maybeAwait(DB.getRentalById(agreementId));
@@ -460,7 +439,6 @@ const saveRentalAgreement = async () => {
   if (!editingRentalAgreementId) {
     await maybeAwait(DB.addRentalAgreement(payload));
   } else {
-    // Update: prefer Firestore docId update if available
     const current = DB.getRentalByAgreementId ? await maybeAwait(DB.getRentalByAgreementId(editingRentalAgreementId)) : null;
     const docId = current?._docId;
 
@@ -502,7 +480,6 @@ const deleteRentalAgreement = async (agreementId) => {
   if (!r) return;
   if (!confirm(`Delete agreement ${safeText(r.id, agreementId)}?`)) return;
 
-  // Prefer deleting by Firestore doc id
   if (r._docId && DB.deleteRentalAgreementByDocId) {
     await maybeAwait(DB.deleteRentalAgreementByDocId(r._docId));
   } else if (DB.deleteRentalAgreement) {
@@ -647,14 +624,13 @@ const renderVendorOrders = async () => {
   const listEl = document.getElementById("vendorOrdersList");
   const emptyEl = document.getElementById("vendorOrdersEmpty");
   const topBody = document.getElementById("topCustomersBody");
-  const topSection = document.querySelector(".vm-top-customers"); // ✅ whole section wrapper
+  const topSection = document.querySelector(".vm-top-customers"); 
 
   if (!listEl || !emptyEl || !topBody) return;
 
   const searchTerm = document.getElementById("vendorOrderSearch").value.toLowerCase();
   const tabVal = document.getElementById("vendorOrderTab").value;
 
-  // ✅ Firestore orders
   const all = DB.getVendorOrdersByStallId
     ? await maybeAwait(DB.getVendorOrdersByStallId(CURRENT_STALL_ID))
     : [];
@@ -691,7 +667,7 @@ const renderVendorOrders = async () => {
     listEl.innerHTML = vendorOrders.map(createVendorOrderCard).join("");
   }
 
-  // ✅ Only show Top Customers on COMPLETED tab
+  // Only show Top Customers on COMPLETED tab
   if (tabVal !== "completed") {
     if (topSection) topSection.style.display = "none";
     topBody.innerHTML = ""; // optional: clear table
@@ -770,12 +746,10 @@ window.closeMenuModal = closeMenuModal;
 window.saveMenuItem = saveMenuItem;
 window.editMenuItem = editMenuItem;
 window.deleteMenuItem = deleteMenuItem;
-
 window.closeRenewalModal = closeRenewalModal;
 window.saveRentalAgreement = saveRentalAgreement;
 window.viewAgreementDetails = viewAgreementDetails;
 window.closeViewAgreementModal = closeViewAgreementModal;
 window.editRentalAgreement = editRentalAgreement;
 window.deleteRentalAgreement = deleteRentalAgreement;
-
 window.toggleOrderCard = toggleOrderCard;
